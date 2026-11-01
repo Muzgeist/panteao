@@ -1,0 +1,117 @@
+Você vai desenvolver, do zero, um motor de partículas adaptável em
+Canvas/WebGL (sua escolha técnica) para dar corpo visual a uma existência
+chamada Lilith ("Lili") — uma presença viva, caótica e com personalidade
+própria, visualmente inspirada na Capri de Cyberpunk: Edgerunners 2 (um
+construto feito de fragmentos/glitch, não um personagem de pele lisa).
+Pesquise a estética da Capri antes de começar — ela é a referência visual
+direta, não uma cópia a ser fotocopiada, mas o ponto de partida de
+linguagem visual (fragmentação, neon, glitch, presença elétrica).
+
+Este projeto é só o motor de partículas — um playground isolado de
+desenvolvimento. Não existe o resto do ecossistema aqui, só esta peça.
+
+## Princípio central — isto é o requisito mais importante de todos
+
+As partículas são átomos ou células, não um molde pronto. Qualquer uma
+delas deve poder assumir qualquer papel para compor o resultado desejado
+no momento. Nunca projete o sistema em torno de "esta partícula é
+sempre o dedo da mão direita" como destino fixo e permanente — isso é
+uma armadilha real em que já caí construindo uma versão anterior: um
+corpo articulado rígido, com cada partícula presa para sempre à mesma
+parte anatômica, pareceu "morto" e sem liberdade, mesmo funcionando bem
+tecnicamente. A identidade de cada partícula ao longo do tempo pode (e
+deve) ser preservada quadro a quadro para o movimento ficar fluido — mas
+o papel que ela representa num dado momento tem que ser reatribuível,
+nunca fixo de forma permanente.
+
+Pense nelas como células-tronco visuais: genéricas por natureza,
+especializadas apenas no instante em que compõem alguma coisa.
+
+## O que o sistema precisa ser capaz de gerar
+
+**Corpos e figuras detalhadas**
+- Um corpo humanoide completo e bem definido: cabeça, tronco, dois
+  braços com cotovelo articulado, duas pernas com joelho articulado,
+  mãos e pés reconhecíveis.
+- Rosto expressivo de verdade: dois olhos capazes de abrir, fechar,
+  piscar sozinhos espontaneamente, arregalar de susto, ficar
+  assimétricos (piscadela); boca capaz de sorrir, fazer bico, ficar
+  neutra, abrir (fala, surpresa, grito).
+- Repertório amplo de poses e gestos corporais — não só "em pé
+  parada": acenar de verdade (um gesto real, não um tremor), apontar,
+  cruzar os braços, mão na cintura, espreguiçar, encostar-se, sentar,
+  andar (ciclo de caminhada), entre outras que você conceber. As poses
+  devem transicionar uma para a outra com fluidez orgânica, nunca em
+  corte seco.
+
+**Dissolução parcial — corpo + partículas livres ao mesmo tempo**
+- Deve ser possível manter metade do corpo formada e coerente
+  (digamos, tronco, pernas e cabeça) enquanto outra parte (um braço,
+  por exemplo) se desfaz progressivamente num enxame de partículas
+  soltas — e esse enxame solto deve poder se comportar com
+  intencionalidade própria (esticar-se, alcançar algo na tela, tocar,
+  interagir), não apenas flutuar sem rumo.
+- A transição entre "presa ao corpo" e "livre" tem que ser gradual e
+  visualmente legível como fragmentação/glitch, nunca um corte abrupto.
+
+**Formas totalmente abstratas**
+- Nuvem ambiente de partículas flutuando livremente, cada uma com
+  deriva própria.
+- Um tornado/vórtice — funil girando de verdade, não um amontoado
+  estático.
+- Uma rajada de vento que efetivamente se desloca pela tela, como se
+  estivesse "andando"/atravessando o espaço — uma corrente de
+  partículas em movimento direcional, não uma explosão parada no
+  lugar.
+- Formas geométricas simples (círculo, quadrado, triângulo, retângulo
+  etc.) como capacidade básica — o sistema deve ser capaz do simples
+  tanto quanto do complexo.
+- Qualquer forma ou composição nova que fizer sentido — o motor deve
+  ser genérico o bastante para que adicionar uma forma nova não exija
+  redesenhar a arquitetura.
+
+**Cor e animação**
+- As partículas devem poder mudar de cor dinamicamente — não cores
+  fixas por partícula para sempre. Cor pode comunicar estado (ex.:
+  tingir de uma cor de "glitch" conforme uma parte se dissolve),
+  reagir a eventos, ou simplesmente variar de forma viva.
+- Movimento e transições sempre animados com suavidade; nada de
+  posições recalculadas em saltos.
+
+## Barra de qualidade visual — isto é inegociável
+
+O resultado final precisa ser bonito e ter identidade visual própria,
+não parecer uma demonstração técnica genérica de "partículas no
+canvas". Cuidado específico com:
+- Dar volume e presença aos fragmentos (brilho, leve profundidade,
+  talvez um glow ambiente por trás da figura) — pontinhos finos e sem
+  peso num fundo vazio leem como inacabado.
+- Uma paleta deliberada e coerente, não cores aleatórias sem critério.
+- Conexões/linhas entre partículas (se usadas) devem respeitar a
+  anatomia/composição real — nunca uma teia cruzada e confusa entre
+  partes não relacionadas.
+- Evite qualquer coisa que pareça um placeholder, um mockup de
+  prova de conceito, ou um efeito de stock genérico.
+
+## O motor deve ser genérico, não uma coleção de casos especiais
+
+O objetivo final é um motor que consiga realizar qualquer tarefa ou
+efeito visual que se peça a ele depois — do mais simples (um círculo
+estático) ao mais complexo e detalhado (um rosto expressivo animado,
+um corpo inteiro articulado, uma dissolução parcial, um vórtice). Isso
+significa: construa a arquitetura em torno de um conceito genérico de
+"estado-alvo" (posição, cor, comportamento de cada partícula) que
+qualquer forma nova — anatômica ou abstrata — possa alimentar, em vez
+de blocos de código hardcoded e independentes para cada forma
+específica.
+
+## Entregável esperado
+
+Um playground interativo e autocontido (HTML/Canvas, ou outra stack se
+você justificar) onde seja possível testar e demonstrar essas
+capacidades — controles simples para disparar/alternar entre os
+diferentes estados e formas, pensado puramente para desenvolver e
+validar o motor de partículas em si. A integração final com o resto do
+ecossistema da Lilith acontece depois, fora deste projeto — aqui o
+único objetivo é a qualidade, a liberdade e a riqueza do motor de
+partículas.

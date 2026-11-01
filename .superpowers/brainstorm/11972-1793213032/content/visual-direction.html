@@ -1,0 +1,155 @@
+<style>
+  @keyframes glitchShift {
+    0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0,0); }
+    20% { clip-path: inset(10% 0 60% 0); transform: translate(-3px,0); }
+    40% { clip-path: inset(50% 0 10% 0); transform: translate(3px,0); }
+    60% { clip-path: inset(80% 0 2% 0); transform: translate(-2px,0); }
+    80% { clip-path: inset(5% 0 85% 0); transform: translate(2px,0); }
+  }
+  @keyframes softPulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.04); }
+  }
+  @keyframes wireDrift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes spriteBounce {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8px) rotate(2deg); }
+  }
+  .vis-stage {
+    position: relative;
+    height: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0f;
+  }
+  .glitch-figure {
+    width: 60px; height: 120px;
+    background: linear-gradient(180deg, #ff2fb0, #2fffc7);
+    border-radius: 30px 30px 20px 20px;
+    position: relative;
+    box-shadow: 0 0 25px #ff2fb0aa, 0 0 45px #2fffc766;
+  }
+  .glitch-figure::before, .glitch-figure::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, #2fffc7, #ff2fb0);
+    border-radius: 30px 30px 20px 20px;
+    animation: glitchShift 1.8s infinite steps(1);
+    mix-blend-mode: screen;
+  }
+  .glitch-figure::after { animation-delay: .4s; opacity: .6; }
+
+  .bio-figure {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #7df9ff, #6a5cff 60%, #1a0f4a 100%);
+    box-shadow: 0 0 40px #6a5cffaa, 0 0 80px #7df9ff66;
+    animation: softPulse 2.4s ease-in-out infinite;
+  }
+
+  .wire-figure {
+    width: 70px; height: 130px;
+    position: relative;
+    animation: wireDrift 3s ease-in-out infinite;
+  }
+  .wire-figure .dot {
+    position: absolute; width: 5px; height: 5px; border-radius: 50%;
+    background: #9dffcf; box-shadow: 0 0 6px #9dffcf;
+  }
+
+  .sprite-figure {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fff06a, #ff7ab8 70%);
+    box-shadow: 0 0 20px #ff7ab8aa;
+    animation: spriteBounce 1.4s ease-in-out infinite;
+    position: relative;
+  }
+  .sprite-figure::after {
+    content: '✦'; position: absolute; top: -14px; right: -10px;
+    color: #fff06a; font-size: 18px; text-shadow: 0 0 8px #fff06a;
+  }
+
+  .palette-row { display: flex; gap: 6px; margin-top: 10px; justify-content: center; }
+  .swatch { width: 18px; height: 18px; border-radius: 4px; }
+</style>
+
+<h2>Direção visual — qual pegada combina com ela?</h2>
+<p class="subtitle">São 4 direções bem diferentes de estética. Pense em qual encaixa com a personalidade que já construímos — pode escolher uma, ou falar no terminal se quiser misturar duas.</p>
+
+<div class="cards">
+  <div class="card" data-choice="glitch-neon" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="vis-stage"><div class="glitch-figure"></div></div>
+    </div>
+    <div class="card-body">
+      <h3>Glitch Neon</h3>
+      <p>A mais próxima da Capri — silhueta afiada, cores neon vazando (rosa/verde/ciano), fragmentação visual constante. Agressivamente digital.</p>
+      <div class="palette-row">
+        <div class="swatch" style="background:#ff2fb0"></div>
+        <div class="swatch" style="background:#2fffc7"></div>
+        <div class="swatch" style="background:#0a0a0f"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="bio-organico" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="vis-stage"><div class="bio-figure"></div></div>
+    </div>
+    <div class="card-body">
+      <h3>Bioluminescência orgânica</h3>
+      <p>Mais fluida que quebrada — brilho pulsante, formas redondas, como luz/tinta viva. Parece mais "viva" que "avariada".</p>
+      <div class="palette-row">
+        <div class="swatch" style="background:#7df9ff"></div>
+        <div class="swatch" style="background:#6a5cff"></div>
+        <div class="swatch" style="background:#1a0f4a"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="wireframe-dados" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="vis-stage">
+        <div class="wire-figure">
+          <div class="dot" style="top:0;left:30px"></div>
+          <div class="dot" style="top:20px;left:15px"></div>
+          <div class="dot" style="top:20px;left:45px"></div>
+          <div class="dot" style="top:50px;left:25px"></div>
+          <div class="dot" style="top:50px;left:38px"></div>
+          <div class="dot" style="top:90px;left:20px"></div>
+          <div class="dot" style="top:90px;left:45px"></div>
+          <div class="dot" style="top:120px;left:15px"></div>
+          <div class="dot" style="top:120px;left:50px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Wireframe de dados</h3>
+      <p>Abstrata — feita de pontos/linhas soltas que sugerem uma silhueta, nunca sólida. Dado se tornando forma, nunca corpo definitivo.</p>
+      <div class="palette-row">
+        <div class="swatch" style="background:#9dffcf"></div>
+        <div class="swatch" style="background:#0a0a0f"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="sprite-travessa" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="vis-stage"><div class="sprite-figure"></div></div>
+    </div>
+    <div class="card-body">
+      <h3>Sprite travessa</h3>
+      <p>Proporções pequenas e redondas, mais brincalhona e fofa que ameaçadora — glitch aparece como "brilhinho" solto, não fragmentação pesada.</p>
+      <div class="palette-row">
+        <div class="swatch" style="background:#fff06a"></div>
+        <div class="swatch" style="background:#ff7ab8"></div>
+      </div>
+    </div>
+  </div>
+</div>

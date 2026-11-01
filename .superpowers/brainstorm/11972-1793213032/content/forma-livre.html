@@ -1,0 +1,115 @@
+<style>
+  @keyframes drift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(4px,-6px)} }
+  @keyframes flicker { 0%,100%{opacity:1} 45%{opacity:.4} 50%{opacity:1} 55%{opacity:.6} }
+  @keyframes dissolve {
+    0%,100% { opacity: 1; filter: blur(0); }
+    50% { opacity: .5; filter: blur(2px); }
+  }
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(var(--r)) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(var(--r)) rotate(-360deg); }
+  }
+  .stage {
+    height: 200px; border-radius: 10px; background: #0a0a0f;
+    display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+  }
+  .stage .label-tag {
+    position: absolute; top: 8px; left: 10px; font-size: 11px; letter-spacing: .08em;
+    color: #9dffcf; text-transform: uppercase; opacity: .7;
+  }
+
+  /* Humanoid, made of neon + wireframe */
+  .humanoid { position: relative; width: 70px; height: 150px; animation: flicker 3s infinite; }
+  .humanoid .head { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto;
+    background: radial-gradient(circle, #ff2fb0, #2fffc766); box-shadow: 0 0 14px #ff2fb0aa; }
+  .humanoid .torso { width: 40px; height: 60px; margin: 4px auto; border-radius: 14px;
+    background: linear-gradient(180deg,#2fffc7,#ff2fb0); opacity:.85; box-shadow: 0 0 18px #2fffc766; }
+  .humanoid .arm { position: absolute; width: 4px; height: 50px; background: #9dffcf; box-shadow:0 0 6px #9dffcf; top: 34px; }
+  .humanoid .arm.l { left: 8px; transform: rotate(12deg); }
+  .humanoid .arm.r { right: 8px; transform: rotate(-12deg); }
+  .humanoid .eye { position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; top:10px; box-shadow:0 0 5px #fff; }
+
+  /* Abstract particle cloud */
+  .cloud { position: relative; width: 160px; height: 160px; }
+  .cloud .p { position: absolute; width: 5px; height: 5px; border-radius: 50%; top:50%; left:50%;
+    animation: orbit linear infinite; }
+  .cloud .p:nth-child(odd) { background:#ff2fb0; box-shadow:0 0 6px #ff2fb0; }
+  .cloud .p:nth-child(even) { background:#9dffcf; box-shadow:0 0 6px #9dffcf; }
+
+  /* Mid-transition: half-formed */
+  .transition { position: relative; width: 90px; height: 150px; }
+  .transition .top-half { width: 50px; height: 70px; margin: 0 auto; border-radius: 14px;
+    background: linear-gradient(180deg,#ff2fb0,#2fffc7); animation: flicker 2s infinite; }
+  .transition .dot { position: absolute; width: 4px; height: 4px; border-radius: 50%;
+    background: #9dffcf; box-shadow: 0 0 6px #9dffcf; animation: drift 2.4s ease-in-out infinite; }
+</style>
+
+<h2>Matéria-prima: Glitch Neon + Wireframe de Dados</h2>
+<p class="subtitle">A combinação não define UMA forma — define o material que qualquer forma dela seria feita de: luz neon fragmentada + pontos/linhas de dado. As três telas abaixo são só exemplos do espectro, não um menu fechado — ela escolhe, inclusive no meio da conversa.</p>
+
+<div class="cards">
+  <div class="card">
+    <div class="card-image">
+      <div class="stage">
+        <span class="label-tag">Exemplo — humanoide</span>
+        <div class="humanoid">
+          <div class="head"><div class="eye" style="left:7px"></div><div class="eye" style="left:15px"></div></div>
+          <div class="torso"></div>
+          <div class="arm l"></div>
+          <div class="arm r"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Forma humanoide, por escolha dela</h3>
+      <p>Torso, cabeça, olhos, braços — mas quantos olhos, que proporção, se tem cabelo ou mãos, tudo isso é dela decidir, não um design fixo nosso.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image">
+      <div class="stage">
+        <span class="label-tag">Exemplo — abstrata</span>
+        <div class="cloud" id="cloud"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Forma totalmente abstrata</h3>
+      <p>Nenhuma figura — só um aglomerado de partículas/linhas de dado, sem corpo nenhum. Ela pode "ser" isso quando quiser, sem que falte nada.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image">
+      <div class="stage">
+        <span class="label-tag">Exemplo — em trânsito</span>
+        <div class="transition">
+          <div class="top-half"></div>
+          <div class="dot" style="top:90px;left:20px"></div>
+          <div class="dot" style="top:100px;left:50px"></div>
+          <div class="dot" style="top:115px;left:30px"></div>
+          <div class="dot" style="top:130px;left:60px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Transição fluida entre as duas</h3>
+      <p>O meio do caminho — metade ainda com silhueta, metade já se desfazendo em partículas. A transição em si é parte da personalidade, não só um efeito técnico.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cloud = document.getElementById('cloud');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'p';
+    const r = 30 + Math.random() * 40;
+    p.style.setProperty('--r', r + 'px');
+    p.style.animationDuration = (3 + Math.random() * 4) + 's';
+    p.style.animationDelay = (Math.random() * -5) + 's';
+    cloud.appendChild(p);
+  }
+</script>
+
+<p class="label">Isso captura a liberdade de forma que você imaginou? Responda no terminal.</p>
