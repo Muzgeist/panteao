@@ -2,12 +2,16 @@ class BodyForm {
   constructor(mode) { this.mode = mode; this.usesCharacter = true; this.linkAlpha = 0.16; this.ankPrev = null; this.ankV = [0, 0, 0]; this.shedPh = 0; }
   camera(eng) {
     if (this.mode === 'portrait') { const h = eng.char.joint('head'); return { x: h[0], y: h[1] + 0.02, zoom: 3.3 }; }
+    if (this.mode === 'compact') {   // pequena, de pé no canto de baixo à direita da área livre (o painel aberto empurra a área)
+      const vw = eng.view, z = COMPACT.zoom, S = eng.screenScale() / Math.max(1e-6, eng.cam.zoom * eng.ucam.zoom) * z, r = eng.char.joint('root');
+      const fx = vw.cx * vw.W * 2 - 0.1 * vw.H, fy = vw.H * 0.955;   // onde os pés devem ficar, em pixels
+      return { x: r[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }
     const v = eng.char.view; if (v && VIEW_FOCUS[v.focus]) return VIEW_FOCUS[v.focus](eng.char);
     const pc = eng.char.pose.cam; if (pc) return { x: 0, y: pc.y, zoom: pc.zoom };
     return { x: 0, y: 0.9, zoom: 1 };
   }
   build(eng) {
-    const N = eng.N, port = this.mode === 'portrait', A = port ? ALLOC_PORT : ALLOC_FULL, rng = mulberry32(port ? 99 : 7);
+    const N = eng.N, port = this.mode === 'portrait', A = port ? ALLOC_PORT : this.mode === 'compact' ? ALLOC_COMPACT : ALLOC_FULL, rng = mulberry32(port ? 99 : 7);
     const B = new SlotBuilder(); const L = B.L;
     const cnt = k => Math.round((A[k] || 0) * N);
     let seg = 1;
@@ -155,7 +159,7 @@ class BodyForm {
         const yokeTop = {}, cupBottom = {};
         for (const sx of SIDES) {
           const c = FONE.cups[sx], nC = foneN(sx), [e1, e2] = tframe(nC), up = e2[1] > 0 ? e2 : e2.map(v => -v), a = FONE.a, b = FONE.b;
-          const pt = (r1, r2, d) => [c[0] + e1[0] * r1 + up[0] * r2 + nC[0] * d, c[1] + e1[1] * r1 + up[1] * r2 + nC[1] * d, c[2] + e1[2] * r1 + up[2] * r2 + nC[2] * d];
+          const K2 = FONE.k, pt = (r1, r2, d) => [c[0] + (e1[0] * r1 + up[0] * r2 + nC[0] * d) * K2, c[1] + (e1[1] * r1 + up[1] * r2 + nC[1] * d) * K2, c[2] + (e1[2] * r1 + up[2] * r2 + nC[2] * d) * K2];   // mesma posição, concha menor
           const mRim = Math.round(nCup * 0.2), mDome = Math.round(nCup * 0.28), mLogo = Math.round(nCup * 0.1), mPad = Math.round(nCup * 0.3), mPadL = nCup - mRim - mDome - mLogo - mPad;
           line(ID, resample(q => ({ p: pt(Math.cos(q * TAU) * a, Math.sin(q * TAU) * b, 0.006), n: nC, k: skC }), mRim), 1, { col: MAT.foneW, al: 1, size: 0.6 });
           for (let i = 0; i < mDome; i++) { const ang = rng() * TAU, rr = Math.sqrt(rng()) * 0.92; item(ID, { p: pt(Math.cos(ang) * a * rr, Math.sin(ang) * b * rr, 0.006 + 0.009 * (1 - rr * rr)), n: nC }, skC, 1, { col: MAT.foneW, al: 0.62, size: 0.62 }); }
@@ -175,10 +179,10 @@ class BodyForm {
         const bandAt = q => { const f = q * (ctrl.length - 1), i = Math.min(ctrl.length - 2, f | 0), u = f - i; return cr(ctrl[Math.max(0, i - 1)], ctrl[i], ctrl[i + 1], ctrl[Math.min(ctrl.length - 1, i + 2)], u); };
         const bandN = q => { const p = bandAt(q); return norm3([p[0], 0, p[2] + 0.01]); };
         const mE = Math.round(nBand * 0.3);
-        for (const dy of [0.011, -0.011]) line(ID, resample(q => { const p = bandAt(q); return { p: [p[0], p[1] + dy, p[2]], n: bandN(q), k: skB }; }, mE), 1, { col: MAT.foneW, al: 0.95, size: 0.55 });
+        for (const dy of [0.011 * FONE.kb, -0.011 * FONE.kb]) line(ID, resample(q => { const p = bandAt(q); return { p: [p[0], p[1] + dy, p[2]], n: bandN(q), k: skB }; }, mE), 1, { col: MAT.foneW, al: 0.95, size: 0.55 });
         const mFill = nBand - 2 * mE;
         for (let i = 0; i < mFill; i++) { const q = rng(), p = bandAt(q), nn = bandN(q), inner = rng() < 0.3, slider = q < 0.12 || q > 0.88;
-          item(ID, { p: [p[0] - nn[0] * (inner ? 0.006 : 0), p[1] + (rng() - 0.5) * 0.02, p[2] - nn[2] * (inner ? 0.006 : 0)], n: nn }, skB, 1, { col: slider && !inner ? MAT.silver : inner ? MAT.foneC : MAT.foneW, al: inner ? 0.35 : slider ? 0.85 : 0.6, size: 0.55 }); }
+          item(ID, { p: [p[0] - nn[0] * (inner ? 0.006 : 0), p[1] + (rng() - 0.5) * 0.02 * FONE.kb, p[2] - nn[2] * (inner ? 0.006 : 0)], n: nn }, skB, 1, { col: slider && !inner ? MAT.silver : inner ? MAT.foneC : MAT.foneW, al: inner ? 0.35 : slider ? 0.85 : 0.6, size: 0.55 }); }
         // cabo: sai da concha do lado de lá e pende sobre o peito
         const c0 = cupBottom[1], cab = resample(q => { const y = c0[1] - 0.25 * q, x = c0[0] - 0.012 * Math.sin(q * Math.PI) - 0.01 * q, zb = torsoPt(y, frontAng(y, x), 0.034).p[2]; return { p: [x, y, Math.max(c0[2] - 0.02 * q, zb)], n: [0, 0, 1], k: torsoSkin(y), q }; }, Math.max(6, nCab - 4));
         const chC = seg++; cab.forEach(P => item(ID, P, P.k, 0, { chain: chC, col: MAT.cable, al: 0.85, size: 0.42, sub: 5, pA: P.q }));

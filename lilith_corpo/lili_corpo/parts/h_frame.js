@@ -38,10 +38,11 @@
     const tprO = [0, 0, 0], occT = (x, y, z) => { const px = x - cpx, py = y - cpy, pz = z - cpz, lx = CR[0] * px + CR[3] * py + CR[6] * pz + crx, ly = CR[1] * px + CR[4] * py + CR[7] * pz + cry, lz = CR[2] * px + CR[5] * py + CR[8] * pz + crz;
       if (ly < 0.8 || ly > 1.5) return 0; torsoFast(Math.min(ly, 1.47), tprO); const rx = tprO[0] * 1.05 + 0.012, rz = tprO[1] * 1.05 + 0.014; return occEllipse2(lx / rx, (lz - tprO[2]) / rz, CR[6] / rx, CR[8] / rz); };
     // carga emocional: flerte, curiosidade, susto → veias pulsam mais rápido
-    const charge = Math.min(1, Math.max(fl, ch.curious * 0.55, ch.reaction ? 1 - smooth(0.8, 2.4, t - ch.reaction.t0) : 0, eng.glitchSpike * 0.7)), veinW = 2.4 + 9 * charge;
+    const charge = Math.min(1, Math.max(fl, ch.curious * 0.55, ch.reaction ? 1 - smooth(0.8, 2.4, t - ch.reaction.t0) : 0, eng.glitchSpike * 0.7)), veinW = 2.4 + 9 * charge; this.veinW = veinW; this.charge = charge;
     // cor como estado (pingente, íris, colo) e nitidez da íris com foco/interesse; pupila vertical dilata junto
     const pendC = modeColor(eng.colorMode, t, [0, 0, 0]), irisC = eng.colorMode === 0 ? [PAL.eye[0] * 0.8, PAL.eye[1] * 1.05, PAL.eye[2] * 1.25] : modeColor(eng.colorMode, t + 0.7, [0, 0, 0]);
     const irisDef = Math.max(0.12, ch.curious, fl), slitW = 0.1 + 0.27 * clamp((F.pupil - 0.55) / 1.0, 0, 1.3);
+    this.faceP = { eyeO, mHalf, mUp, mDn, gx, gy, slitW, irisDef, irisC, F, EX, EY, EW, IR };   // o rosto em malha lê os mesmos parâmetros
     const coloP = 0.5 + 0.5 * Math.sin(t * (1.5 + 4.5 * fl)), coloAmp = (0.12 + 0.55 * fl) * (0.4 + 0.6 * coloP * coloP), coloC = modeColor(eng.colorMode, t + 1.3, [0, 0, 0]);
     // insinuação: pedaço de roupa que falha por um instante
     const pkA = t - ch.peek.t0, pk = pkA >= 0 && pkA < 0.3 ? Math.sin(pkA / 0.3 * Math.PI) : 0, pkc = ch.peek.c, pkr = ch.peek.r;

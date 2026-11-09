@@ -133,7 +133,7 @@
           if (fw > 0.001 && ly > 1.38 && ly < 1.53 && lx > -0.14 && lx < 0.14) a *= 1 - fw * foneOcc(lx, ly, lz);
           let oc = 0;
           if (ly > 0.8 && ly < 1.47 && lx > -0.2 && lx < 0.2) { const pr = tpr; torsoFast(ly, pr); const rx2 = pr[0] * 1.04 + 0.012, rz2 = pr[1] * 1.04 + 0.012; oc = occEllipse2(lx / rx2, (lz - pr[2]) / rz2, CR[6] / rx2, CR[8] / rz2); }
-          if (oc < 1 && zb < 0.02) { const qx = x - hpx, qy = y - hpy, qz = z - hpz, hlx = (H[0] * qx + H[3] * qy + H[6] * qz - HC[0]) / HRAD[0], hly = (H[1] * qx + H[4] * qy + H[7] * qz - HC[1]) / HRAD[1], hlz = (H[2] * qx + H[5] * qy + H[8] * qz - HC[2]) / HRAD[2];
+          if (oc < 1 && zb < 0.02) { const qx = x - hpx, qy = y - hpy, qz = z - hpz, hlx = ((H[0] * qx + H[3] * qy + H[6] * qz) * IK2 - HC[0]) / HRAD[0], hly = ((H[1] * qx + H[4] * qy + H[7] * qz) * IK2 - HC[1]) / HRAD[1], hlz = ((H[2] * qx + H[5] * qy + H[8] * qz) * IK2 - HC[2]) / HRAD[2];
             if (hlx * hlx + hly * hly < 1.4) oc = Math.max(oc, occEllipsoid(hlx, hly, hlz, H[6] / HRAD[0], H[7] / HRAD[1], H[8] / HRAD[2])); }
           a *= 1 - 0.88 * oc;
         }
@@ -216,7 +216,7 @@
             if (q < 0.32) [lx, ly] = lipsXY(q / 0.32, true); else if (q < 0.62) [lx, ly] = lipsXY((q - 0.32) / 0.3, false);
             else { const fx = D.rx[i] * 0.92, uq = fx * 0.5 + 0.5, fy = Math.abs(D.ry[i]); lx = fx; ly = D.ry[i] > 0 ? lerp(0.035, lipsXY(uq, true)[1], fy) : lerp(-0.04, lipsXY(uq, false)[1], fy); }
             // a marca fica no vidro (mais perto da câmera); reprojeta para cair exatamente sobre a boca na tela
-            const cam = eng.cam, sc2 = KS.mz !== undefined ? (5 - KS.pos[2]) / (5 - KS.mz) : 1, ax = cam.x + (KS.pos[0] - cam.x) * sc2, ay = cam.y + (KS.pos[1] - cam.y) * sc2;
+            const cmx = eng.camX(), cmy = eng.camY(), sc2 = KS.mz !== undefined && !eng.ucam.pitch ? (5 - KS.pos[2]) / (5 - KS.mz) : 1, ax = cmx + (KS.pos[0] - cmx) * sc2, ay = cmy + (KS.pos[1] - cmy) * sc2;
             let px = ax + lx * Wk * sc2, py = ay + ly * Wk * sc2, pz = KS.pos[2];
             py -= brk * brk * (0.22 + 0.35 * D.p3[i]); px += (D.p4[i] - 0.5) * 0.1 * brk;
             x = lerp(x, px, form); y = lerp(y, py, form); z = lerp(z, pz, form);
@@ -326,6 +326,8 @@
         a = lerp(0.22 + 0.2 * sd, a, iw); k = lerp(0.05, k, iw); turb = lerp(0.6, turb, iw); size = lerp(0.5, size, iw);
         glitch = Math.max(glitch, 4 * iw * (1 - iw) * 0.4); if (iw < 0.5 && shape >= 8) shape = 0;
       }
+      // malha assentada por cima: a partícula da mesma parte vira só um brilho fino de fragmento
+      if (part >= 0 && MW) { const fc = ty === 1 || ty === 2; if (fc || ty === 0 || (ty === 4 && MESH_ITEMS[D.item[i]])) { const mm = MA[part] * MW[fc ? 1 : 0] * (ty === 4 ? iw : 1); if (mm > 0.001) a *= 1 - MESH_DIM * mm; } }
       S.x[i] = x; S.y[i] = y; S.z[i] = z; S.r[i] = r; S.g[i] = g; S.b[i] = b; S.a[i] = a; S.size[i] = size; S.k[i] = k; S.turb[i] = turb; S.glitch[i] = glitch; S.shape[i] = shape;
     }
     // luz ambiente atrás da figura + poça no chão

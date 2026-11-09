@@ -21,6 +21,11 @@ const ROLL_U = { [ASYM_S]: 0.2, [OTHER_S]: 0.93 };       // manga do lado dela e
 const ALLOC_FULL = { shell: 0.037, eyes: 0.03, faceX: 0.01, brows: 0.005, mouth: 0.017, nose: 0.004, hair: 0.205, neck: 0.01, torso: 0.135, upper: 0.019, fore: 0.015, hand: 0.022, thigh: 0.033, shin: 0.025, foot: 0.01,
   orb: 0.005, prop: 0.024, kiss: 0.009, fone: 0.024, boots: 0.044, jacketI: 0.028, camisaI: 0.01, shortI: 0.022, sockI: 0.028, bloco: 0.011, costura: 0.005, corpo: 0.002,
   piercing: 0.0025, choker: 0.012, liga: 0.01, corrente: 0.01, chifres: 0.012, cauda: 0.03, asas: 0.05, unhas: 0.014, tatuagem: 0.062 };
+/* modo compacto: o MESMO corpo, menor e mais leve para ficar no canto da tela. Menos cachos e dedos;
+   rosto, marcas e silhueta do tronco ganham fatia maior para continuarem legíveis com menos células */
+const ALLOC_COMPACT = Object.assign({}, ALLOC_FULL, { hair: 0.165, hand: 0.016, shell: 0.045, eyes: 0.044, faceX: 0.015, mouth: 0.025, brows: 0.007, nose: 0.005, torso: 0.142, prop: 0.02, asas: 0.04 });
+const COMPACT = { N: 6000, Nmobile: 4500, headK: 1.12, zoom: 0.37 };   // a cabeça encolhe um pouco menos: nunca chibi
+let HEADK = 1;   // escala atual da cabeça (1 no corpo inteiro); quem desfaz a matriz da cabeça divide por HEADK²
 const ALLOC_PORT = { shell: 0.1, eyes: 0.09, faceX: 0.03, brows: 0.016, mouth: 0.055, nose: 0.012, hair: 0.27, neck: 0.03, torso: 0.12, upper: 0.028, fone: 0.05, jacketI: 0.03, camisaI: 0.02, choker: 0.03, chifres: 0.03 };
 
 /* mapa de vestuário de um slot de corpo (estático, em espaço de repouso): quanto cada peça cobre o slot,

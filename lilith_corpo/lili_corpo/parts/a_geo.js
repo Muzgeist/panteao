@@ -78,7 +78,7 @@ const shortHemT = ang => 0.8 + 0.054 * smooth(0.55, 0.98, Math.abs(Math.sin(ang)
 function shortHemLeg(s, n) { const outer = n[0] * (s === 'L' ? 1 : -1); let y = 0.792 + 0.062 * smooth(-0.15, 0.95, outer) + 0.006 * Math.max(0, n[2]);
   if (s === ASYM_S) y += 0.083 * smooth(-0.1, -0.75, n[2]) * smooth(-0.7, 0.1, outer); return y; }
 // recorte vazado atrás, logo abaixo do cós, do mesmo lado
-const shortCut = (ang, h) => h > 0.905 && h < 0.924 && Math.sin(ang) * NETSG > 0.25 && -Math.cos(ang) > 0.45;
+const shortCut = (ang, h) => false;   // o recorte vazado atrás foi fechado: na malha ele lia como pele escapando do short
 // coturno: cano até a panturrilha baixa, solado tratorado alto, biqueira, ilhoses + ganchos, zíper lateral
 const BOOT = { heel: -0.074, toe: 0.2, collar: 0.19, shaftLo: 0.096 };
 const bootSole = zp => lerp(0.046, 0.031, smooth(-0.01, 0.1, zp));
@@ -149,11 +149,11 @@ function netStrand(ang, y) {
   return smooth(0.0015, -0.001, best);
 }
 // fone over-ear branco descansando no pescoço: conchas sobre as clavículas, arco por trás do pescoço
-const FONE = { cups: { 1: [0.088, 1.432, 0.097], [-1]: [-0.088, 1.432, 0.097] }, a: 0.04, b: 0.046 };
+const FONE = { cups: { 1: [0.088, 1.432, 0.097], [-1]: [-0.088, 1.432, 0.097] }, a: 0.04, b: 0.046, k: 0.7, kb: 0.75 };   // k: escala da concha (discreto); kb: largura do arco
 const foneN = sx => norm3([sx * 0.46, 0.32, 0.83]);
 function foneOcc(x, y, z) {
   let o = 0;
-  for (const sx of [1, -1]) { const c = FONE.cups[sx], d = Math.hypot(x - c[0], y - c[1], z - c[2]); o = Math.max(o, smooth(0.058, 0.04, d)); }
+  for (const sx of [1, -1]) { const c = FONE.cups[sx], d = Math.hypot(x - c[0], y - c[1], z - c[2]); o = Math.max(o, smooth(0.058 * FONE.k, 0.04 * FONE.k, d)); }
   return o;
 }
 /* materiais: cores reais das referências; o brilho neon da Lili entra como luz de borda */

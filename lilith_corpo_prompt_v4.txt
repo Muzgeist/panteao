@@ -1,0 +1,60 @@
+Continuação direta de lilith_corpo.html. Ajustes pontuais depois de ver o
+resultado rodando — não mexer em mais nada além do listado abaixo.
+
+## 1. Fone — reduzir tamanho/volume
+
+O fone ficou grande e chamativo demais, competindo com o rosto em vez de
+complementar. Reduzir a escala do fone (concha e arco) pra um tamanho mais
+discreto — ele é acessório dela, não deveria dominar a silhueta da cabeça.
+Manter posição (pescoço, nunca no ouvido) e o resto do comportamento
+(toggle `fone` já existente) inalterados, só a escala.
+
+## 2. Selo de súcubo (tatuagem asas+coração) — confirmar reposicionamento, não é bug
+
+O usuário moveu de propósito o selo da lombar pra frente, na barriga —
+achou que ficava melhor ali. Isso é decisão definitiva, não reverter pra
+lombar. Manter o mesmo desenho/gradiente/cor já especificado antes, só na
+nova posição (frente do abdômen, próximo de onde o piercing fica).
+
+## 3. Assimetria das pernas (meia com textura escamada vs. listrada) — manter, é intencional
+
+As duas pernas ficaram com tratamentos visualmente bem diferentes entre si
+(uma com textura escamada escura, outra com listras). Isso não é erro a
+corrigir — o usuário gostou do ar caótico que isso deu e quer manter
+exatamente assim. Não uniformizar as pernas pra ficarem mais parecidas.
+
+## 4. Cobertura de malha faltando — duas peças finas, precisam de tratamento próprio
+
+A malha de pele/torso (gerada a partir de `torsoAt`/`capR`/`bustB`/`gluteB`
+numa grade altura×ângulo) não cobre peças finas que não seguem essa forma
+— por isso estas duas ficaram sem malha, só em partícula/aparência crua:
+
+- **Tiras entrelaçadas do top** (o recorte trançado sobre o colo, referência
+  da pasta `top/`) — não é superfície de torso, é uma tira fina seguindo um
+  caminho próprio. Gerar a malha dela como um "tubo" varrendo uma seção
+  transversal pequena ao longo do caminho que a tira já segue (mesmos
+  pontos de controle que já posicionam a tira em partícula), não como
+  grade de torso. Textura própria de tecido/elástico, mesma lógica de
+  sub-malha por item já estabelecida.
+- **Pingente em coração da corrente na lombar** — mesma causa: é um
+  objeto pequeno e rígido, não parte da superfície do torso. Gerar como
+  uma forma extrudada simples (contorno de coração, pouca espessura em Z),
+  ancorada no mesmo ponto onde a partícula do pingente já fica. Textura
+  própria (metálico/joia).
+
+Ambas seguem a mesma regra já combinada: sub-malha independente por peça,
+visibilidade ligada ao mesmo toggle/estado de dissolução que a partícula
+daquela peça já usa — não um atlas único, não uma peça nova "colada" por
+fora do sistema de item independente que já existe.
+
+## Arquivo
+
+`lilith_corpo/lili_corpo/lilith_corpo.html`, mesmo arquivo de sempre.
+
+## Verificação
+
+- Fone visualmente discreto, sem dominar a cabeça.
+- Selo confirmado na frente da barriga, mesmo desenho de antes.(nao alterar
+- As duas pernas continuam visivelmente diferentes entre si (não alterar).
+- Tira do top e pingente de coração aparecem com a mesma qualidade de malha
+  texturizada que o resto do corpo já tem quando ela está parada/assentada.

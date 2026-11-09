@@ -1,8 +1,11 @@
   update(eng, t, dt) {
+    eng.char.headKT = this.mode === 'compact' ? COMPACT.headK : 1;
+    { const r = eng.char.joint('root'); this.persp = this.mode === 'compact' ? [r[0] - eng.camX(), 0.85 - eng.camY()] : null; } HEADK = eng.char.headK || 1; const IK2 = 1 / (HEADK * HEADK);
     const S = eng.S, D = this.D, ch = eng.char, JR = ch.JR, JP = ch.JP, n = this.n, port = this.mode === 'portrait';
     const F = ch.face, dis = ch.dis, IT = ch.items;
     const jw = IT.jaqueta.w, sw = IT.camisa.w, shw = IT.short.w, mw = IT.meias.w, bw = IT.coturnos.w, fw = IT.fone.w, nw = IT.bloco.w;
     const itemW = [fw, bw, nw, 1, jw, mw, shw, sw, IT.piercing.w, IT.choker.w, IT.liga.w, IT.corrente.w, IT.chifres.w, IT.cauda.w, IT.asas.w * ch.wing.m, IT.unhas.w, IT.tatuagem.w, 1];
+    this.itemW = itemW; const MA = meshTick(this, eng, t, dt), MW = this.meshW;   // malha: quietude e presença por parte
     const hi = JI.head, ho = hi * 9, H = JR.subarray(ho, ho + 9), hpx = JP[hi * 3], hpy = JP[hi * 3 + 1], hpz = JP[hi * 3 + 2];
     const glA = ch.reach;
     const anc = PART_ANCHOR.map(nm => ch.joint(nm));
@@ -11,6 +14,7 @@
     const EX = 0.034, EY = -0.004, EW = 0.0216, IR = 0.0098;
     const eyeO = [Math.max(0, F.eyeL * ch.blinkL), Math.max(0, F.eyeR * ch.blinkR)];
     const mHalf = 0.0175 * F.width * (1 - 0.35 * F.round), mUp = 0.0011 + Math.max(0, F.open) * 0.0052 + F.round * 0.003, mDn = 0.0011 + Math.max(0, F.open) * 0.024 + F.round * 0.004;
+    this.faceU = [mHalf, mDn, smooth(0.02, 0.2, F.open + F.round * 0.3)];
     const gx = clamp(F.gazeX, -1, 1) * 0.0062, gy = clamp(F.gazeY, -1, 1) * 0.0042;
     // referencial do peito (cabelo que cai nas costas, oclusão do fone)
     const ci = JI.chest, CR = JR.subarray(ci * 9, ci * 9 + 9), cpx = JP[ci * 3], cpy = JP[ci * 3 + 1], cpz = JP[ci * 3 + 2], crx = JREST[ci * 3], cry = JREST[ci * 3 + 1], crz = JREST[ci * 3 + 2];
@@ -62,7 +66,7 @@
           }
           { // nem a cabeça
             const qx = x - hpx, qy = y - hpy, qz = z - hpz, R0 = HRAD[0] * 1.14, R1 = HRAD[1] * 1.08, R2 = HRAD[2] * 1.14;
-            const hlx = (H[0] * qx + H[3] * qy + H[6] * qz - HC[0]) / R0, hly = (H[1] * qx + H[4] * qy + H[7] * qz - HC[1]) / R1, hlz = (H[2] * qx + H[5] * qy + H[8] * qz - HC[2]) / R2, r2 = hlx * hlx + hly * hly + hlz * hlz;
+            const hlx = ((H[0] * qx + H[3] * qy + H[6] * qz) * IK2 - HC[0]) / R0, hly = ((H[1] * qx + H[4] * qy + H[7] * qz) * IK2 - HC[1]) / R1, hlz = ((H[2] * qx + H[5] * qy + H[8] * qz) * IK2 - HC[2]) / R2, r2 = hlx * hlx + hly * hly + hlz * hlz;
             if (r2 < 1) { const sc = 1 / Math.sqrt(r2 + 1e-6) - 1, a1 = hlx * sc * R0, a2 = hly * sc * R1, a3 = hlz * sc * R2; x += H[0] * a1 + H[1] * a2 + H[2] * a3; y += H[3] * a1 + H[4] * a2 + H[5] * a3; z += H[6] * a1 + H[7] * a2 + H[8] * a3; }
           }
           if (y < 0.012) y = 0.012;   // pousa no chão, não atravessa

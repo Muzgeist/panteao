@@ -13,8 +13,8 @@
       for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; item(ID, onPlane(c.p, e1, e2, c.n, Math.cos(a) * 0.0032, -0.0125 + Math.sin(a) * 0.0032, 0.0015, K), K, 0, { col: MAT.gold, al: 1, size: 0.4, hang: 0.003, pA: 0.5, pB: 3 }); }   // garra da pedra
       for (let i = 0; i < mG; i++) { const a = rng() * TAU, rr = Math.sqrt(rng()) * 0.0026; item(ID, onPlane(c.p, e1, e2, c.n, Math.cos(a) * rr, -0.0125 + Math.sin(a) * rr, 0.0025, K), K, 0, { col: i % 3 ? MAT.gem : [1.3, 0.6, 1.1], al: 0.95, size: 0.5, spark: i < 3, hang: 0.003, pA: 0.5, pB: 3 }); } };
     // choker: faixa preta fina, anel em coração no centro, pingente que muda com o modo de cor, correntes em arco
-    const neckAt = (y, ang, off) => { const f = clamp((y - 1.425) / 0.13, 0, 1), cz = lerp(-0.015, 0, f), r = capR(LIMB.neck, f) + off, s2 = Math.sin(ang), c2 = Math.cos(ang); return { p: [r * s2, y, cz + r * c2], n: [s2, 0, c2], k: [J.neck, J.chest, smooth(1.5, 1.44, y) * 0.45] }; };
-    const frontZ = (x, y, off) => { let z = -1; if (y >= 1.44) { const f = clamp((y - 1.425) / 0.13, 0, 1), r = capR(LIMB.neck, f); if (Math.abs(x) < r) z = lerp(-0.015, 0, f) + Math.sqrt(r * r - x * x); } if (y <= 1.47) z = Math.max(z, torsoPt(y, frontAng(y, x)).p[2]); return z + off; };
+    const neckAt = neckAtG;
+    const frontZ = frontZG;
     const buildChoker = n => { if (!n) return; const ID = ITEM_ID.choker, Y = 1.468, HW2 = 0.0062;
       const mE = Math.round(n * 0.13), mF = Math.round(n * 0.2), mH = Math.round(n * 0.14), mP = Math.round(n * 0.1), mC = n - 2 * mE - mF - mH - mP - 12;
       for (const dy of [HW2, -HW2]) line(ID, resample(q => neckAt(Y + dy, q * TAU - Math.PI, 0.0045), mE), 1, { col: MAT.strap, al: 0.9, size: 0.42 });
@@ -54,10 +54,7 @@
       const cc = heart(Math.PI, 0.013, mH); heart(2.55, 0.0085, mh); heart(-2.55, 0.0085, mh);
       for (let k = 0; k < 2; k++) { const ch = seg++, m = Math.max(4, Math.round(mD / 2)); for (let i = 0; i < m; i++) { const q = i / (m - 1); const P = TP(cc.p[1] - 0.012 - 0.026 * q, Math.PI + (k ? 0.035 : -0.035) * (1 - q * 0.5), 0.005 + 0.004 * q); item(ID, P, P.k, 0, { col: MAT.gold, al: 0.95, size: 0.36, chain: ch, spark: i === m - 1, hang: 0.004, pA: q, pB: 9 + k }); } } };
     // chifres pequenos, curvos para trás, saindo do meio dos cachos
-    const hornPath = (sx, u) => { const hr = restOf('head'), base = norm3([sx * 0.42, 0.86, 0.28]), B = [HC[0] + base[0] * HRAD[0] * 0.98, HC[1] + base[1] * HRAD[1] * 0.98, HC[2] + base[2] * HRAD[2] * 0.98];
-      const C1 = [B[0] + base[0] * 0.05, B[1] + base[1] * 0.05 + 0.01, B[2] + base[2] * 0.05], C2 = [C1[0] + sx * 0.012, C1[1] + 0.02, C1[2] - 0.03], T = [C2[0] + sx * 0.007, C2[1] - 0.01, C2[2] - 0.032];   // ~9 cm: a base some nos cachos, a ponta sai e curva para trás
-      const v = 1 - u, b0 = v * v * v, b1 = 3 * v * v * u, b2 = 3 * v * u * u, b3 = u * u * u;
-      return [hr[0] + b0 * B[0] + b1 * C1[0] + b2 * C2[0] + b3 * T[0], hr[1] + b0 * B[1] + b1 * C1[1] + b2 * C2[1] + b3 * T[1], hr[2] + b0 * B[2] + b1 * C1[2] + b2 * C2[2] + b3 * T[2]]; };
+    const hornPath = hornPathG;
     const buildChifres = n => { if (!n) return; const ID = ITEM_ID.chifres, K = [J.head, -1, 0];
       for (const sx of SIDES) { const m = Math.round(n / 2), rings = Math.max(6, Math.round(Math.sqrt(m * 1.6))), per = Math.max(4, Math.round(m / rings));
         for (let r2 = 0; r2 < rings; r2++) { const u = (r2 + 0.5) / rings, P = hornPath(sx, u), Pn = hornPath(sx, Math.min(1, u + 0.02)), Pp = hornPath(sx, Math.max(0, u - 0.02)), t2 = norm3([Pn[0] - Pp[0], Pn[1] - Pp[1], Pn[2] - Pp[2]]);
