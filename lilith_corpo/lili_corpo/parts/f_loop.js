@@ -283,8 +283,8 @@
           if (gq > 0) { glitch = Math.max(glitch, gq * (1 - fq * 0.55)); const m = gq * 0.75 * (1 - fq * 0.4); r = lerp(r, PAL.glitch[0] * 1.2, m); g = lerp(g, PAL.glitch[1] * 1.2, m); b = lerp(b, PAL.glitch[2] * 1.2, m); a = Math.max(a, 0.5 * gq * (ty === 4 ? iw : 1)); }
           if (fq > 0) {
             const A0 = anc[part];
-            let sx, sy, sz, sk2 = 0.5, st2 = 0.25;
-            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1);
+            let sx, sy, sz, sk2 = 0.5, st2 = 0.25, fadeK = 1;
+            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1), GB = glA.grab && glA.grab.part === part ? glA.grab : null;
             if (ch.swarm === 'reach') {
               const G = glA.goal, gx2 = G[0] - A0[0], gy2 = G[1] - A0[1], gz2 = G[2] - A0[2], gl = Math.hypot(gx2, gy2, gz2) + 1e-4, maxL = 2.1;
               const ext = glA.ext * Math.min(1, maxL / gl), Ex = A0[0] + gx2 * ext, Ey = A0[1] + gy2 * ext, Ez = A0[2] + gz2 * ext;
@@ -302,6 +302,15 @@
               sk2 = 0.62; st2 = 0.12;
               const tip = smooth(0.75, 1, dist);
               r = lerp(r, lerp(PAL.violet[0], PAL.cyan[0] * 1.3, tip), fq * 0.8); g = lerp(g, lerp(PAL.violet[1], PAL.cyan[1] * 1.3, tip), fq * 0.8); b = lerp(b, lerp(PAL.violet[2], PAL.cyan[2] * 1.3, tip), fq * 0.8);
+              if (GB && GB.mode === 'delete' && GB.burnT0 != null) {
+                // deletar: na chegada a mão não pousa — sobe em espiral (a MESMA subida do vórtice) e queima até sumir. Único fogo do reach.
+                const hv = (t - GB.burnT0) * 0.48 - (1 - dist) * 0.62 + fract(sd * 0.1377) * 0.14;
+                if (hv > 0) { const h2 = Math.min(1, hv), r0 = (0.03 + 0.34 * Math.pow(h2, 1.5)) * (0.85 + 0.3 * fract(sd * 0.71)), th = fract(sd * 0.29) * TAU + t * 2.3 - h2 * 5.5;
+                  const vx2 = Ex + 0.12 * Math.sin(t * 0.55 + h2 * 2.4) * h2 + Math.cos(th) * r0, vy2 = Ey + h2 * 1.05, vz2 = Ez + Math.sin(th) * r0, m = smooth(0, 0.14, hv);
+                  sx = lerp(sx, vx2, m); sy = lerp(sy, vy2, m); sz = lerp(sz, vz2, m);
+                  const fc = FIRE(clamp(1 - h2 * 0.9 + 0.12 * Math.sin(t * 23 + sd * 50), 0, 1));
+                  r = lerp(r, fc[0], m); g = lerp(g, fc[1], m); b = lerp(b, fc[2], m); sk2 = 0.75; st2 = 0.05; fadeK = 1 - smooth(0.55, 1.0, hv); }
+              } else if (GB && GB.mode === 'regrow') { sx = x; sy = y; sz = z; fadeK = 1 - fq; }   // depois de queimar, o braço volta a se formar no lugar
             } else if (ch.swarm === 'orbit') {
               const R = 0.42 + sd * 0.42, inc = (D.seed[i] * 7 % 1 - 0.5) * 0.9 + part * 0.4, ang = sd * TAU * 13 + t * (0.75 / R) * (part % 2 ? 1 : -1);
               sx = chest[0] + Math.cos(ang) * R; sy = chest[1] - 0.15 + Math.sin(ang) * R * Math.sin(inc) * 0.5 + Math.sin(t + sd * 9) * 0.02; sz = chest[2] + Math.sin(ang) * R * Math.cos(inc);
@@ -314,7 +323,7 @@
               r = lerp(r, PAL.violet[0], fq * 0.5); g = lerp(g, PAL.violet[1], fq * 0.5); b = lerp(b, PAL.violet[2], fq * 0.5);
             }
             x = lerp(x, sx, fq); y = lerp(y, sy, fq); z = lerp(z, sz, fq); k = lerp(k, sk2, fq); turb = lerp(turb, st2, fq);
-            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq); shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
+            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq) * fadeK; shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
           }
         }
       }

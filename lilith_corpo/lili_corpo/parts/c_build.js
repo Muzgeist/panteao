@@ -5,7 +5,7 @@ class BodyForm {
     if (this.mode === 'compact') {   // pequena, de pé no canto de baixo à direita da área livre (o painel aberto empurra a área)
       const vw = eng.view, z = COMPACT.zoom, S = eng.screenScale() / Math.max(1e-6, eng.cam.zoom * eng.ucam.zoom) * z, r = eng.char.joint('root');
       const fx = vw.cx * vw.W * 2 - 0.1 * vw.H, fy = vw.H * 0.955;   // onde os pés devem ficar, em pixels
-      return { x: r[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }
+      return { x: r[0] - eng.char.place[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }   // o canto é a casa dela; viajar a tira de lá
     const v = eng.char.view; if (v && VIEW_FOCUS[v.focus]) return VIEW_FOCUS[v.focus](eng.char);
     const pc = eng.char.pose.cam; if (pc) return { x: 0, y: pc.y, zoom: pc.zoom };
     return { x: 0, y: 0.9, zoom: 1 };
@@ -138,7 +138,7 @@ class BodyForm {
     }
     /* ---------- acessórios e marca (tipo 4): geometria própria; desligados, viram aura ---------- */
     let dry = 0, dryOn = false;   // modo de medição: conta sem criar
-    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
+    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (!(isFinite(P.p[0]) && isFinite(P.p[1]) && isFinite(P.p[2])))  return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
       chain: o.chain ?? -1, seg: o.seg ?? 0, size: o.size ?? 0.55, shape: o.shape ?? 0, col: o.col || MAT.white, al: o.al ?? 0.8, hang: o.hang || 0, pA: o.pA || 0, pB: o.pB || 0, sub: o.sub || 0, q1: o.q1, q2: o.q2, q3: o.q3, q4: o.q4, sparkle: o.spark ? 1 : 0 }); };
     // linha contínua (contorno) por uma lista de {p, n, k: [j1, j2, w2]}
     const line = (id, pts, part, o = {}) => { const ch = seg++; for (const q of pts) item(id, q, q.k, part, { ...o, chain: ch }); return ch; };

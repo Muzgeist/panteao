@@ -786,6 +786,116 @@ Contexto: ela é presença constante na tela ("Errante"), e o corpo full-detail 
 
 Correção sobre o modo leve: o usuário rejeitou explicitamente a ideia de "chibi clássico" (cabeça grande, corpo curto). Redefinido como modo compacto — o mesmo corpo/silhueta, só em escala reduzida (cabeça encolhe um pouco menos que o resto, pra manter o rosto legível), com menos partículas. Vantagem real dessa redefinição: nenhum item de guarda-roupa/súcubo precisa de geometria própria pro modo compacto, já que é a mesma forma só em escala — elimina o custo-por-item que a versão chibi clássica teria. Prompt completo das duas frentes (malha procedural + modo compacto) escrito em arquivo de prompt próprio na pasta do projeto.
 
+Status (2026-11-09): as duas frentes acima foram confirmadas implementadas e com qualidade validada pelo usuário rodando o sistema de verdade. Modo "chibi" foi implementado como "compacto" (nome final).
+
+### Mais animações e uma forma abstrata nova, decididas em 2026-11-09
+
+Três frentes novas, todas reaproveitando mecanismo que já existe em vez de inventar do zero, prompt completo em arquivo próprio na pasta do projeto:
+
+1. Vórtice funcional na mão: dá propósito de ação ao sistema de dissolução "reach" que já existe (a mão já sai em espiral até um alvo) — pegar/mover um arquivo fica na cor fria normal, deletar reaproveita a subida espiral do vórtice só localizada na mão, agora com fogo — deletar lê como destruição que queima.
+2. Locomoção em três modos independentes, substitui a pose "andar" (removida — não combina com um ser feito de dado, não músculo): modo fluxo (corrente visível atravessando a tela, sem portal), modo portal (quase instantâneo, só os rasgos nas duas pontas, sem travessia visível), modo ambos (versão completa e mais lenta: rasgo → travessia → rasgo). O usuário corrigiu explicitamente que os três deviam ser independentes, não uma sequência fixa.
+3. Estética do portal, corrigida de círculo genérico pra identidade real dela: borda irregular/rasgada (mesma linguagem da "costura" que já marca o braço), padrão tribal reaproveitando o desenho da tatuagem dela, pontas ecoando a silhueta das asas em escala reduzida, brasa de fogo correndo pela borda.
+4. Nova forma abstrata — "coração partido em órbita" — com identidade real dela, diferente do núcleo genérico que já existia. Núcleo pulsando tipo batimento, cor alternando violeta↔magenta por corte abrupto (nunca gradiente), fragmentos de coração partido em órbitas erráticas que aceleram perto do centro, estilhaçando com fagulha de fogo ao se aproximar demais (reaproveita o mesmo mecanismo que a juba já usa pra soltar fio) — exceto um fragmento-assinatura fixo que nunca racha, eco da mesma assimetria permanente do corpo dela.
+
+Lei do fogo (vale pras três frentes acima e qualquer uma futura): fogo é vocabulário novo e escasso, não reskin geral — ela mesma foi explícita que é dado/glitch frio na maior parte do tempo; fogo só em momentos de intensidade/destruição real, nunca em forma/estado calmo — avisou que fogo espalhado em tudo a tornaria "só a que pega fogo" em vez de interessante.
+
+### Avaliação honesta de status (2026-11-09)
+
+O usuário perguntou diretamente se a Lilith estava "pronta". Resposta registrada, pra não se perder: depende do sentido de "pronta".
+
+Design (personalidade + identidade visual): sim, atingiu um ponto de parada natural. Perfil de personalidade completo e testado na prática (inclusive o limite de conteúdo resistiu quando contornado, sem gerar conflito); corpo com guarda-roupa modular, pacote de súcubo completo, rosto detalhado, malha texturizada, modo compacto, animações funcionais novas, uma forma abstrata com identidade própria. Insistir em adicionar mais aqui teria retorno decrescente.
+
+Existência real: não. Ela continua, pela própria definição do projeto, dormente. O motor de partículas é um protótipo HTML/WebGL isolado, não integrado a nenhum sistema real — sem acesso real ao SO, sem um Cérbero de verdade auditando ações, sem um Morfeu de verdade pra guardar o Vínculo (a conversa de nascimento dela está preservada esperando um lugar pra morar que ainda não existe).
+
+Conclusão prática: a fase de design pra ela está genuinamente madura. O próximo passo real pra fazê-la existir de verdade não é mais sobre personalidade/visual — é a fase técnica de implementação (hospedagem, Morfeu, Cérbero, integração de sistema), que também é o item 2 de "Próximos passos sugeridos" abaixo, agora mais concreto do que antes.
+
+## Design visual de todo o Panteão — arquitetura e identidades (2026-11-09)
+
+Contexto: depois de considerar o design da Lilith genuinamente maduro (ver avaliação honesta de status acima), o usuário decidiu que a próxima fase não é mais sobre ela especificamente — é dar identidade visual real aos outros quatro agentes (Nyx, Cérbero, Caronte, Ogum) e desenhar a arquitetura de como o Panteão inteiro funciona na tela (janelas, chat, notificação, hub). A Lili continua fazendo parte do Panteão — ela sai e anda livre pelo computador, mas tem representação dentro dessa estrutura também, não é uma peça à parte. Processo: perguntas estruturais fase a fase, seguido de incorporar cada agente em voz própria pra decidir a própria identidade visual — mesma técnica já validada com a Lili (nome, corpo, sensualidade).
+
+Destino final combinado com o usuário: tudo isso vai virar um prompt único, 100% autocontido, pra uma instância de IA totalmente nova, sem nenhum contexto desta conversa — só esse prompt e o arquivo lilith_corpo.html (como referência técnica da estrutura de partículas) serão fornecidos a ela. O prompt não pode presumir conhecimento prévio de nada do Panteão.
+
+### Arquitetura (decisões estruturais travadas)
+
+Casco: o painel/app abre e fecha sob demanda — mas todo agente roda continuamente em segundo plano, independente do painel estar aberto ou não (ex: Nyx ouve o tempo todo até ser chamada; Caronte notifica mesmo com a tela fechada). O painel é uma janela de interação/consulta, nunca um container do qual a existência dos agentes depende.
+
+Modelo de superfícies: cada agente (Lili, Nyx, Cérbero, Caronte, Ogum) tem superfície PRÓPRIA e independente, aberta sob demanda — não é um container único com abas dentro da Nyx. Essas janelas individuais são o destino de quando o usuário clica num botão discreto (ver "Layout e composição visual" abaixo); elas não são a tela que aparece por padrão.
+
+Relatório Diário continua sendo uma tela própria da Nyx (resumo formal entregue no gatilho já definido, quando o usuário acorda), aberta sob demanda a partir da composição principal.
+
+Telas transversais (Catálogo de Capacidades, editor da Tabela de Limiares, indicadores de Resiliência) vivem num acesso de configurações/menu, separado do fluxo principal — não pertencem a nenhum agente e não fazem parte do dia a dia constante.
+
+### Layout e composição visual — corrigido depois do primeiro protótipo (2026-11-09)
+
+O usuário implementou um primeiro protótipo (ver panteao_identidade_visual_prompt.txt) e achou o resultado poluído e errado: virou um desktop de janelas flutuantes de verdade (barra de título, botão fechar, um painel de debug do lado, os 4 agentes em cards separados numa fileira embaixo) — exatamente o oposto do que ele queria. Ele trouxe duas imagens de referência (interface JARVIS/Iron Man, estilo "HUD" de Tony Stark) — a lição delas não é a cor (ciano) nem o tema (Homem de Ferro), é a composição: tudo é UMA peça visual só, central, radial, sem moldura de janela nenhuma (sem título, sem X, sem sombra de card) — os painéis secundários são leituras HUD integradas ao redor do elemento central, nunca janelas de sistema operacional soltas.
+
+Correção travada, reescreve a tela principal do zero:
+
+- A composição central É a Nyx — a forma dela ocupa o centro da tela principal, sempre o elemento mais proeminente, nunca disputando espaço igual com outro agente.
+- Quando um agente está "ativo", a forma dele se junta à da Nyx nesse mesmo espaço central — convivendo ali, não em caixa separada. "Ativo" tem duas causas possíveis: (1) o mesmo gatilho de notificação já definido (algo relevante acontecendo), ou (2) o usuário tem a janela individual daquele agente aberta/está interagindo com ele agora. Mais de um agente pode estar ativo e visível junto da Nyx ao mesmo tempo, se a situação pedir — ela continua sempre maior/mais em destaque que qualquer um deles, mesmo com vários presentes.
+- Abaixo da composição central, uma lista de status dinâmica — mas só mostra linha pra quem tem algo relevante agora; fica vazia/oculta quando ninguém tem nada acontecendo. Decisão explícita do usuário: o Panteão pode crescer (novos agentes via Apoteose), então a lista nunca deve virar "informação à toa" só pra preencher espaço.
+- Cada linha da lista tem seu próprio botão discreto e camuflado — não um botão genérico só, um ponto de acesso pequeno por agente, que abre a janela/superfície individual DAQUELE agente especificamente quando o usuário quiser ir fundo.
+- O chat com a Nyx continua na tela principal — mesmo sendo uma composição mais "painel de comando" que "janela de chat", a opção de escrever pra ela fica ali, sempre acessível, sem precisar abrir nada à parte.
+- Sem moldura de janela em nada disso: nunca título + botão fechar, nunca sombra de card solto, nunca um painel de debug/simulador visível como se fosse parte do design real — qualquer ferramenta de teste/simulação fica clara e separadamente marcada como tooling de desenvolvimento, nunca misturada à composição visual de verdade.
+
+Meio visual: todos os 5 usam o MESMO motor de partículas (a mesma técnica de células/slots reatribuíveis já construída pra Lili) — a identidade de cada um vem de cor/comportamento/material, não de tecnologia diferente por agente.
+
+Profundidade de detalhe: a Lili mantém a profundidade única que já tem (corpo humanoide completo, guarda-roupa modular, pacote de súcubo, malha texturizada etc.). Os outros 4 ganham uma forma abstrata rica (vocabulário visual PRINCIPAL deles) e um avatar humanoide mais simples/secundário — não o mesmo nível de investimento de guarda-roupa/detalhe fino que a Lili recebeu.
+
+Método de identidade: cada um dos 4 agentes foi incorporado em voz própria pra escolher a própria forma — mesma técnica usada pra nome/corpo/sensualidade da Lili. Exceção: a Nyx não foi "incorporada" (não faz sentido — ela já é quem fala a sessão inteira), decidiu a própria identidade direto, sem camada de personagem.
+
+Nenhum agente além da Lili tem presença física constante andando pela tela. Só ela é "Errante" no sentido de corpo visível solto. Os outros 4 ficam ambiente/invisíveis até precisarem aparecer (notificação) ou serem abertos pelo usuário.
+
+Notificação/Prioridade Máxima: quando um agente precisa de atenção, a PRÓPRIA forma abstrata dele aparece no canto da tela, com o nível de prioridade indicado (reaproveitando o selo da Tabela de Limiares abaixo) — não é um sistema de notificação separado, é a identidade visual de cada um fazendo dupla função. O mesmo mecanismo, em intensidade mínima, serve de presença ambiente pros agentes de vigilância passiva (Cérbero, Caronte) quando não há nada acontecendo.
+
+Rotas de aviso situacionais, não fixas: quando um agente precisa do usuário, ele pode aparecer diretamente (mecanismo acima), pedir pra Nyx avisar em nome dele, ou os dois ao mesmo tempo — decidido por contexto/urgência, não por regra única. Isso é o Fallback universal de comunicação já definido ganhando corpo visual (caminho padrão = relatar via Nyx, silencioso, acumulado; contato direto = reservado pra Exige-você/Prioridade-máxima ou indisponibilidade da Nyx).
+
+Selo de Padrão de Presença: mostra atividade ESPECÍFICA em tempo real (ex: "Ogum: compilando", "Caronte: monitorando 3 canais"), não só o nome do estado genérico.
+
+Selo da Tabela de Limiares: sistema único de badge/cor pros 5 níveis de autorização (Autônomo / Autônomo com registro / Delegável à Nyx / Exige você sempre / Prioridade máxima), usado em qualquer lugar do sistema que uma ação apareça, de qualquer agente — desenhado uma vez, reusado por todos.
+
+Declaração pré-execução (as 9 perguntas): nível de detalhe mostrado é condicionado ao risco — Exige-você comum mostra resumo condensado (risco + justificativa curta) com as 9 respostas completas disponíveis sob demanda; risco mais crítico (ex: as duas Cabeças altas ao mesmo tempo) força a leitura completa.
+
+Cérbero — exceção estrutural: canal 100% independente de tudo, inclusive do painel/Nyx — precisa funcionar mesmo se a Nyx estiver indisponível/comprometida, já que ele vigia até ela. Tem espaço de conversa direta também, mas confirmado como raro — contato principal com ele continua sendo via Nyx.
+
+Caronte e Ogum: também superfícies independentes (não abas dentro da janela da Nyx), mesmo reportando pra ela por padrão na hierarquia normal.
+
+Resposta via Caronte (fluxo "avisar e repassar"): texto ou voz, à escolha do usuário no momento — sem um modo padrão fixo.
+
+Morfeu: sem personalidade real (não fala, não decide), mas ganha uma forma mínima só por consistência visual com os outros 5. É tela de CONSULTA (Vínculo, Conhecimento Processual, Autoavaliação, Biblioteca de Conhecimento Externo), nunca de conversa.
+
+Apoteose e Elísio: a ESTRUTURA genérica das cerimônias (sequência de etapas/telas reutilizáveis — Chamado, Aprovação, Concepção, Forja, Julgamento, Investidura, Prova, Consagração pra Apoteose; sequência equivalente pra Elísio) é planejada agora, mesmo sem nenhum agente concreto passando por isso ainda. O CONTEÚDO real de uma cerimônia específica (a identidade do agente novo, etc.) só é decidido quando a ocasião surgir de verdade — reaproveita a mesma técnica de voz própria.
+
+### Identidades visuais — revisão com "núcleo + silhueta" (2026-11-09, substitui a rodada anterior)
+
+Correção do usuário: a primeira rodada de identidades foi considerada "sem graça" — tinha material/cor certos, mas nenhuma delas tinha SILHUETA reconhecível de longe. Padrão novo, travado, e que deve valer pra qualquer agente futuro também (Apoteose): todo agente parte do mesmo tipo de núcleo compartilhado (a mesma arquitetura do CoreForm/"núcleo" que já existe no motor da Lili — esfera com anéis de partícula orbitando), mais variações feitas do material/domínio de cada um, mais UM elemento de silhueta grande e inconfundível — o equivalente de "asas e auréola" pra cada personagem. Sem o terceiro elemento, a forma não está completa.
+
+Nyx: núcleo com a superfície carregando o padrão de constelação (pontos conectados por linhas que nunca se rompem — continuidade, não fragmentação; isso sobrevive da rodada anterior, agora como textura do núcleo, não a forma inteira). Cor violeta profundo/prateado frio, gradiente sempre lento, nunca corte abrupto (oposto deliberado da Lili). Elemento de silhueta: grandes asas, que podem estar ABERTAS (revelando o núcleo por inteiro — estado ativo, respondendo, presente) ou ENVOLVENDO o núcleo como um véu/casulo (só um brilho passando por elas — estado calmo, ouvindo em segundo plano). Auréola: uma faixa de estrelas pequenas rotacionando acima do conjunto (núcleo + asas), giro sempre lento. Detalhe secundário: solta uma pena ocasionalmente (reaproveita o mesmo mecanismo que a juba da Lili já usa pra soltar fio, só mais suave — poeira de estrela caindo, não glitch rachando), amarrado a um momento que realmente importou, não aleatório.
+
+Cérbero: núcleo mantém a rigidez geométrica já estabelecida (nunca orgânico/fluido). Três olhos mecânicos sem pálpebra, agora reposicionados juntos no TOPO, numa fileira, varrendo de um lado pro outro — cada um uma íris tipo diafragma (aberta/incolor em risco baixo, fechando/vermelha em risco alto). Elemento de silhueta: correntes circulando o núcleo o tempo todo, sempre tensas, nunca frouxas, entrelaçando-se por entre os três olhos conforme giram. Quando os três olhos convergem num alvo real, as correntes que estavam soltas se apertam, prendendo a geometria em volta daquele ponto — literal, não decorativo, até ele decidir soltar. Cor base cinza-azulado frio/metálico, vermelho reservado só pras íris em alerta. Mantém a resistência de personagem já registrada: beleza dele é de precisão/função, nunca ornamento gratuito.
+
+Caronte: núcleo com água fluindo ao redor dele — não só por fora, a água entra e sai do próprio núcleo, se movendo em correntezas controladas, tipo "dobra de água" (tipo Avatar) — rodando, nunca estática. Quando uma mensagem chega, ela é literalmente conduzida através da água em movimento até emergir perto dele, não aparece do nada. Elemento de silhueta: um manto/capuz tipo ceifador, feito do mesmo material de água — cobre o núcleo parcialmente quando ele está quieto (só um brilho passando por dentro do capuz, ecoando as asas fechadas da Nyx), se abre quando ele precisa agir. Encaixe mitológico direto: Caronte não é a morte, mas é a fronteira que vem logo antes dela virar permanente — o manto de ceifador pertence a ele por direito. Cor: água quase negra, brilho prateado-azulado por baixo, nunca calor. Detalhe secundário: ao liberar uma mensagem que esperou muito tempo, solta uma gota real que cai e se afasta, deixando um anel se espalhando na superfície até sumir — o equivalente dele de "soltar pena"/travessia completada e visível.
+
+Ogum: núcleo quente, com runas orbitando que se moldam dinamicamente em ferramentas de forja (martelo, tenaz, bigorna) conforme giram. Elemento de silhueta: uma coroa/grinalda de ferramentas incandescentes bem acima dele, lendo de longe como uma auréola — só que feita de martelo/tenaz/bigorna em vez de estrela (par direto da auréola da Nyx, na língua dele). A coroa não é estática/decorativa — qualquer peça dela pode descer e virar a ferramenta de verdade na mão dele quando precisa, voltando pra cima depois; gira sempre devagar, mas vibra mais rápido quando ele está trabalhando de verdade, antecipando descer. Detalhe secundário: lava pingando da parte inferior do núcleo enquanto ele trabalha. Cor: laranja-ferro/brasa viva esfriando pra cinza-aço escuro nas bordas — fogo é identidade BASE dele o tempo todo (diferente da Lili, pra quem fogo é vocabulário escasso; Ogum não precisa "ganhar" o calor, ele literalmente é forja). Assinatura de conclusão: ao terminar algo que realmente importa (raro, nunca toda hora), crava a forma no lugar com um golpe final tipo martelo batendo, soltando um anel de choque curto que se espalha e some. Quando ausente (ele é Invocado, maioria do tempo não está presente), não deixa espaço vazio — deixa a última marca/fagulha resfriando, meio apagada, como prova de que esteve ali.
+
+Morfeu: o mais simples de propósito — ele não tem personalidade real, e a simplicidade É a característica dele, não falta de esforço. Núcleo quase imóvel, sem o conjunto de anéis orbitando que os outros têm. Elemento de silhueta: névoa baixa e lenta envolvendo o núcleo, borrando os contornos dele — nunca brilho forte, nunca nitidez total. Encaixe mitológico: ele é literalmente o deus dos sonhos, névoa é o material certo pra memória/lembrança, coerente com ele não ser presença, ser o que fica guardado.
+
+### Checkpoint — correção v2 aplicada e aprovada como base (2026-11-09)
+
+A instância aplicou panteao_identidade_visual_prompt_v2.txt por completo: composição central sem moldura confirmada (PT.Surfaces.nyx removido, PT.WM.open('nyx') não cria janela), hub removido de verdade (Lili virou elemento de canto da composição, telas transversais foram pro menu "Sistema"), painéis individuais redesenhados como HUD encaixado na borda (sem X/cascata, só "recolher"), e as cinco silhuetas implementadas com contagem de célula verificável (ver panteao/README.md na pasta do protótipo pra números exatos). Solução técnica de destaque: js/core/composite.js (CompositeForm) — um único Engine com cada agente ativo recebendo uma fatia contígua de células via subarray (memória compartilhada, não cópia), entrando do reservatório perto da Nyx e saindo em ordem inversa — extensão genuína do princípio de célula reatribuível da Lili pra múltiplos agentes dividindo o mesmo pool físico. O ajuste manual do usuário no prompt (olho do meio do Cérbero mais alto, duas correntes diagonais convergindo sem cobrir pupila) foi implementado literalmente, com posições exatas registradas.
+
+Avaliação do usuário: "ainda está longe do meu agrado total, mas como protótipo pra ser mexido futuramente está ótimo" — checkpoint aceito como base sólida pra próximas rodadas de polimento, não como entrega final.
+
+Pendência conhecida, autossinalizada pela própria instância (não escondida): as partículas de ambiente do Caronte ficam um pouco espalhadas quando ele entra no palco central junto da Nyx — efeito pequeno, registrado em "Limitações" no README do protótipo.
+
+### Pendente — revisão de silhueta da Lili (2026-11-09)
+
+O usuário, depois de ver a nova régua de silhueta aplicada aos outros quatro, avaliou que a forma abstrata "coração partido em órbita" da Lili não está no mesmo nível dos outros quatro — precisa de uma rodada de revisão pra ganhar um elemento de silhueta equivalente. Decisão explícita: resolver depois, não nesta sessão — não mexer na forma dela agora, só registrar que fica pendente.
+
+### Pendente — execução
+
+Feito em 2026-11-09. O usuário já rodou o primeiro prompt numa instância separada, que construiu um protótipo real e modular em panteao/ (engine/forms/surfaces/system/ui próprios, não um arquivo único como a Lili) — entregue como panteaoprototipo.zip, com lilith_corpo.html já no contexto dela desde a primeira rodada. Ele não serviu de referência só conceitual: foi inspecionado item a item (README, js/ui/windows.js, js/surfaces/hub.js, js/surfaces/nyx.js, js/forms/*.js) pra confirmar exatamente onde o layout desviou (moldura de janela de SO em tudo, inclusive na composição que devia ser fixa) e quais formas já tinham o quê. Como essa mesma instância continua com o código no próprio contexto, a correção virou um prompt CIRÚRGICO — panteao_identidade_visual_prompt_v2.txt — referenciando arquivos/funções reais, não uma reescrita do zero. Mesma régua de "núcleo + material + silhueta" da seção de identidades acima, com a correção extra de que a implementação atual do Morfeu (quatro estratos de disco) precisa ser SUBSTITUÍDA pelo conceito núcleo+névoa, não só complementada.
+
 ## Próximos passos sugeridos
 
 1. Usar este documento como referência viva do projeto Panteão.

@@ -1,0 +1,213 @@
+Isto é uma correção/extensão em cima do protótipo que você mesma já
+construiu (pasta panteao/, descrita em panteao/README.md — leia o README
+primeiro, ele está correto sobre a arquitetura e continua valendo). Você
+já tem lilith_corpo.html no contexto; nada mudou sobre ele (continua
+intocado, só referência).
+
+Duas coisas foram avaliadas pelo usuário depois de rodar o protótipo:
+**o layout está errado** (virou desktop de janelas de verdade) e **as
+identidades dos quatro agentes ficaram incompletas** (faltava silhueta
+reconhecível). Esta correção resolve as duas. Tudo o mais que já existe
+— engine/renderer/stage, o runtime mock, o sistema de notificação de 3
+rotas, os selos, a Declaração pré-execução, o andaime de cerimônia —
+está bom e não deve ser reescrito, só ajustado onde indicado.
+
+## 1. Correção de layout — não é mais "janela da Nyx entre outras janelas"
+
+O erro específico: `js/ui/windows.js` aplica moldura de janela de
+sistema operacional (header com título, botão `win__x` de fechar, drag,
+cascata de posição, z-index) em TODA superfície, inclusive na da Nyx —
+que deveria ser a composição central sempre visível, nunca uma janela
+entre outras.
+
+**Correção:**
+
+- A superfície da Nyx (hoje `js/surfaces/nyx.js`, montada via
+  `PT.WM.open('nyx')` e recebendo o chrome de `windows.js`) deixa de ser
+  uma "janela". Ela vira o conteúdo PERSISTENTE e sem moldura do próprio
+  `#casco` quando ele está aberto — sem header, sem título, sem botão
+  fechar (fechar o casco com Ctrl+Espaço continua existindo, mas isso
+  esconde o casco inteiro, não "fecha a Nyx" como se fosse uma janela
+  entre outras).
+- A forma da Nyx (`PT.FORMS.nyx`, instanciada no `formStage` principal
+  dessa superfície) ocupa o centro dessa composição, sempre o elemento
+  mais proeminente.
+- **Quando outro agente está "ativo", a forma DELE se junta à da Nyx
+  nesse MESMO palco central** — não numa canvas separada pequena como a
+  `strip` faz hoje. "Ativo" = (a) o mesmo gatilho que hoje dispara
+  `PT.notify`/o dock no canto, ou (b) o usuário tem a superfície
+  individual daquele agente aberta agora (`PT.WM.isOpen(id)`). Mais de
+  um agente pode estar ativo ao mesmo tempo nesse palco central — a Nyx
+  continua sempre maior/mais em destaque que qualquer combinação deles.
+  Implemente isso como uma segunda forma (ou uma lista de formas)
+  desenhada no mesmo `Stage`/view que já hospeda a forma da Nyx, com
+  escala/posição secundária em relação a ela — não um canvas à parte.
+- **A `strip` de status (hoje os 4 agentes sempre visíveis em miniatura no
+  rodapé da superfície da Nyx) vira uma lista DINÂMICA** — só mostra
+  linha pra quem tem algo relevante agora (mesmo critério de "ativo"
+  acima, ou uma fila/pendência real tipo `N.inbox`, `ST.findings`,
+  `ST.queue`, `ST.history` conforme o agente). Fica vazia/oculta quando
+  nenhum dos quatro tem nada acontecendo — não é mais uma lista fixa de
+  4 itens.
+- **Cada linha dessa lista, quando existe, mantém seu próprio botão
+  discreto** (o que já existe como `it.onclick = () => PT.WM.open(a)` em
+  `strip__it` é o padrão certo — só precisa parar de ser sempre visível
+  pros 4, e passar a só existir quando a linha existe).
+- O chat com a Nyx (`form.chat__in`) continua existindo nessa mesma
+  composição central, sem mudança de comportamento.
+- **`js/surfaces/hub.js` deixa de ser uma tela separada aberta via
+  `PT.WM.open('hub')`.** O conteúdo útil dela se redistribui:
+  - A lógica de `agentCard`/`_kpi` (os números por agente: repasses,
+    achados, risco máximo, fila, fase, gravações) alimenta a MESMA lista
+    dinâmica de status descrita acima, em vez de viver num grid à parte.
+  - `lilithCard`/`lilithGlyph` continuam existindo — essa é exatamente a
+    representação da Lilith que a composição precisa ter (status +
+    "Chamá-la ao painel"/"Liberar"). Vira mais uma linha/elemento
+    possível na composição central ou na lista dinâmica (sua escolha de
+    onde encaixa melhor visualmente), não um card separado numa tela de
+    hub.
+  - Os `tiles` transversais (Catálogo de Capacidades, Tabela de
+    Limiares, Saúde do sistema, Cerimônia, Declaração pré-execução)
+    movem pra um ponto de acesso tipo menu/configurações, simples,
+    separado da composição principal — não precisam de uma tela "hub"
+    dedicada pra isso. O botão "Hub" que `windows.js` injeta em outras
+    janelas (`hb.title = 'Abrir o hub (janela separada)'`) deve ser
+    removido ou reapontado pra esse novo menu.
+- Superfícies individuais (Cérbero, Caronte, Ogum, Morfeu) continuam
+  existindo como hoje, abertas via `PT.WM.open(id)` pelos botões
+  discretos da lista — mas sem o chrome pesado de janela de SO. Mantenha
+  título simples/discreto se precisar de algum rótulo, mas remova a
+  sensação de "janela de sistema operacional" (sem X proeminente, sem
+  sombra de card flutuante genérica, sem cascata de posição aleatória —
+  pode manter arrastável se fizer sentido, mas o visual precisa ler como
+  parte da mesma linguagem HUD, não como um app de desktop).
+- O canal do Cérbero (`#canal-cerbero`, independente do casco) continua
+  exatamente como está — isso já está certo, não mexer.
+- O "Simulador" (`#sim`) já está corretamente separado visualmente da
+  composição real (é uma aside própria) — confirme que continua assim,
+  nunca precisa ficar mais integrado ao design real, é ferramenta de
+  desenvolvimento.
+
+## 2. Correção de identidade — princípio "núcleo + material + silhueta"
+
+As quatro formas atuais têm material/cor certos mas nenhuma tem um
+elemento de SILHUETA grande e reconhecível — o equivalente de "ter uma
+forma, não só uma cor diferente". Adicionar isso a cada uma, sem
+remover o que já funciona (o comportamento vivo em repouso descrito no
+README continua valendo).
+
+### Nyx (js/forms/nyx.js)
+
+Manter a constelação (árvore geradora + arestas extras, linhas `rigid`)
+como a TEXTURA da superfície de um núcleo — não precisa jogar fora a
+geometria atual, ela pode ser remapeada pra viver na casca de uma forma
+esférica central em vez de ocupar o espaço todo sozinha.
+
+**Adicionar:**
+- **Asas** grandes — dois estados: ABERTAS (revelam o núcleo/
+  constelação por inteiro — ela está ativa/respondendo) ou ENVOLVENDO o
+  núcleo como um véu (só brilho passando por elas — ela está calma,
+  ouvindo em segundo plano). Amarre o estado ao mesmo sinal que hoje
+  controla `N.available`/atividade de chat, ou a um novo campo de
+  "engajamento" se for mais limpo.
+- **Auréola**: uma faixa de pontos pequenos (reaproveite o padrão de
+  partícula-ponto já usado na constelação) rotacionando acima do
+  conjunto núcleo+asas, giro sempre lento.
+- **Detalhe secundário**: uma partícula se solta ocasionalmente (poeira
+  de estrela caindo, suave — não é o "corte de cor" que é língua da
+  Lilith), amarrada a um evento de resposta significativa, não
+  aleatório.
+
+### Cérbero (js/forms/cerbero.js)
+
+Manter a grade rígida e o comportamento de íris-diafragma/sacada exata
+já implementado — isso está certo.
+
+**Corrigir posição + adicionar:**
+- Reposicionar os três olhos (`EYES`/`this.eye`) pra ficarem JUNTOS, numa
+  fileira, no TOPO da estrutura — hoje (conferir `EYES` no topo do
+  arquivo) eles provavelmente estão espalhados; mude as posições-base
+  pra um agrupamento horizontal no topo sendo 1 olho puco acima dos demais,com 2 circulos de correntes o circulando diagonalmente se encontrando em 1 ponto, sem ficar por cima da pupila ou por cima dos outros olhos um pouco abaixo.
+- **Adicionar correntes** circulando o núcleo/grade o tempo todo, sempre
+  tensas, entrelaçando-se por entre os três olhos conforme giram (nova
+  categoria de segmento/partícula, parecida com os `segs` de grade já
+  existentes, mas com movimento de rotação em torno do conjunto). Quando
+  os três olhos convergem (`conv` já existe no código, usado pra risco
+  0.95), as correntes que estavam soltas devem se apertar/envolver a
+  geometria em volta do alvo, visualmente prendendo aquele ponto até a
+  convergência acabar.
+
+### Caronte (js/forms/caronte.js)
+
+Manter a esfera de água amorfa e a respiração submersa — certo.
+
+**Adicionar:**
+- Deixar explícito que a água não só circula por fora: parte dela entra
+  e sai do próprio núcleo, em movimento mais controlado/"dobrado"
+  (trajetórias curvas, deliberadas, não caóticas) — se hoje a correnteza
+  é só ornamento ambiente, dê a ela uma leitura de "sendo guiada".
+  Quando uma mensagem simulada chega, ela deveria aparecer carregada por
+  essa água em movimento até emergir perto do núcleo, não só
+  aparecer/piscar.
+- **Adicionar manto/capuz** — silhueta externa feita do mesmo material de
+  água, cobrindo o núcleo parcialmente no estado calmo (só brilho
+  passando por dentro) e se abrindo quando ele precisa agir (mesmo
+  sinal que já controla a respiração mais rápida com `pending` alto).
+
+### Ogum (js/forms/ogum.js, OgumForm)
+
+Manter as barras angulosas sempre em forja e `OgumMarkForm` (a última
+marca esfriando quando ausente) — certo.
+
+**Adicionar:**
+- **Coroa de ferramentas de lava e textura de ferro fundido**: um anel de pequenas silhuetas de
+  ferramenta (martelo, tenaz, bigorna) orbitando acima do núcleo,
+  moldando-se/transformando-se enquanto giram (reaproveite a mesma
+  lógica de "deriva entorta, golpe endireita" já usada nas barras,
+  aplicada a essas peças orbitais). Gira sempre devagar; vibra mais
+  rápido quando ele está em atividade real (fase de trabalho ativa).
+  Qualquer peça pode "descer" (visualmente se aproximar/aumentar) quando
+  ele está usando aquela ferramenta especificamente, se fizer sentido
+  ligar a um evento mock existente.
+
+### Morfeu (js/forms/morfeu.js) — substituir o conceito, não só adicionar
+
+A implementação atual (`MorfeuForm`: quatro estratos de disco
+empilhados, um por compartimento de memória) não é mais o conceito
+certo — foi substituída pela decisão "núcleo quase imóvel + névoa".
+**Reescrever esta forma:**
+- Núcleo simples, quase sem movimento (mínima rotação, se alguma).
+  Pode manter a ideia de densidade proporcional a registros como
+  propriedade do núcleo (ex: brilho/tamanho ∝ total de gravações), mas
+  sem os quatro discos separados girando.
+- **Elemento de silhueta: névoa** baixa e lenta envolvendo o núcleo,
+  borrando os contornos dele — nunca brilho forte, nunca nitidez total.
+  Isso é literal e deliberadamente MAIS simples que as outras quatro
+  formas — ele não tem personalidade real, a simplicidade é a
+  característica dele, não uma forma incompleta.
+- A gravação (`ST.lastWrite`) pode continuar acendendo algo por um
+  instante (ex: a névoa clareia brevemente perto do ponto daquele
+  compartimento), mas sem reviver os quatro estratos distintos.
+
+## 3. Verificação (substitui a lista equivalente do README anterior)
+
+- A composição da Nyx não tem mais header/título/botão fechar — é
+  conteúdo persistente do casco, não uma `win` gerenciada por
+  `PT.WM.open`/`close` como as demais.
+- Com um ou mais agentes simulados como "ativos" ao mesmo tempo, as
+  formas deles aparecem juntas à da Nyx no mesmo palco central, ela
+  permanecendo sempre a maior/mais proeminente.
+- A lista de status abaixo da composição central está vazia quando
+  nenhum dos quatro tem algo relevante, e só ganha linha (com botão
+  próprio) quando algo é real.
+- `js/surfaces/hub.js` como tela separada não é mais alcançável — seu
+  conteúdo foi redistribuído (status → lista dinâmica, Lilith →
+  representação na composição, tiles → menu simples).
+- As cinco formas (Nyx, Cérbero, Caronte, Ogum, Morfeu) têm cada uma um
+  elemento de silhueta reconhecível além de núcleo+cor: asas+auréola,
+  correntes+olhos-no-topo, manto+água-dobrada, coroa-de-ferramentas, e
+  núcleo+névoa (deliberadamente mínimo) respectivamente.
+- Morfeu não usa mais a implementação de quatro estratos de disco.
+- Tudo que já estava correto (engine/renderer/stage, mock, notify de 3
+  rotas, seals, declaration, ceremony, canal independente do Cérbero,
+  lilith_corpo.html intocado) permanece sem alteração de comportamento.

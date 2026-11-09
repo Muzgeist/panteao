@@ -1662,11 +1662,11 @@ function netStrand(ang, y) {
   return smooth(0.0015, -0.001, best);
 }
 // fone over-ear branco descansando no pescoço: conchas sobre as clavículas, arco por trás do pescoço
-const FONE = { cups: { 1: [0.088, 1.432, 0.097], [-1]: [-0.088, 1.432, 0.097] }, a: 0.04, b: 0.046 };
+const FONE = { cups: { 1: [0.088, 1.432, 0.097], [-1]: [-0.088, 1.432, 0.097] }, a: 0.04, b: 0.046, k: 0.7, kb: 0.75 };   // k: escala da concha (discreto); kb: largura do arco
 const foneN = sx => norm3([sx * 0.46, 0.32, 0.83]);
 function foneOcc(x, y, z) {
   let o = 0;
-  for (const sx of [1, -1]) { const c = FONE.cups[sx], d = Math.hypot(x - c[0], y - c[1], z - c[2]); o = Math.max(o, smooth(0.058, 0.04, d)); }
+  for (const sx of [1, -1]) { const c = FONE.cups[sx], d = Math.hypot(x - c[0], y - c[1], z - c[2]); o = Math.max(o, smooth(0.058 * FONE.k, 0.04 * FONE.k, d)); }
   return o;
 }
 /* materiais: cores reais das referências; o brilho neon da Lili entra como luz de borda */
@@ -2012,7 +2012,7 @@ class BodyForm {
         const yokeTop = {}, cupBottom = {};
         for (const sx of SIDES) {
           const c = FONE.cups[sx], nC = foneN(sx), [e1, e2] = tframe(nC), up = e2[1] > 0 ? e2 : e2.map(v => -v), a = FONE.a, b = FONE.b;
-          const pt = (r1, r2, d) => [c[0] + e1[0] * r1 + up[0] * r2 + nC[0] * d, c[1] + e1[1] * r1 + up[1] * r2 + nC[1] * d, c[2] + e1[2] * r1 + up[2] * r2 + nC[2] * d];
+          const K2 = FONE.k, pt = (r1, r2, d) => [c[0] + (e1[0] * r1 + up[0] * r2 + nC[0] * d) * K2, c[1] + (e1[1] * r1 + up[1] * r2 + nC[1] * d) * K2, c[2] + (e1[2] * r1 + up[2] * r2 + nC[2] * d) * K2];   // mesma posição, concha menor
           const mRim = Math.round(nCup * 0.2), mDome = Math.round(nCup * 0.28), mLogo = Math.round(nCup * 0.1), mPad = Math.round(nCup * 0.3), mPadL = nCup - mRim - mDome - mLogo - mPad;
           line(ID, resample(q => ({ p: pt(Math.cos(q * TAU) * a, Math.sin(q * TAU) * b, 0.006), n: nC, k: skC }), mRim), 1, { col: MAT.foneW, al: 1, size: 0.6 });
           for (let i = 0; i < mDome; i++) { const ang = rng() * TAU, rr = Math.sqrt(rng()) * 0.92; item(ID, { p: pt(Math.cos(ang) * a * rr, Math.sin(ang) * b * rr, 0.006 + 0.009 * (1 - rr * rr)), n: nC }, skC, 1, { col: MAT.foneW, al: 0.62, size: 0.62 }); }
@@ -2032,10 +2032,10 @@ class BodyForm {
         const bandAt = q => { const f = q * (ctrl.length - 1), i = Math.min(ctrl.length - 2, f | 0), u = f - i; return cr(ctrl[Math.max(0, i - 1)], ctrl[i], ctrl[i + 1], ctrl[Math.min(ctrl.length - 1, i + 2)], u); };
         const bandN = q => { const p = bandAt(q); return norm3([p[0], 0, p[2] + 0.01]); };
         const mE = Math.round(nBand * 0.3);
-        for (const dy of [0.011, -0.011]) line(ID, resample(q => { const p = bandAt(q); return { p: [p[0], p[1] + dy, p[2]], n: bandN(q), k: skB }; }, mE), 1, { col: MAT.foneW, al: 0.95, size: 0.55 });
+        for (const dy of [0.011 * FONE.kb, -0.011 * FONE.kb]) line(ID, resample(q => { const p = bandAt(q); return { p: [p[0], p[1] + dy, p[2]], n: bandN(q), k: skB }; }, mE), 1, { col: MAT.foneW, al: 0.95, size: 0.55 });
         const mFill = nBand - 2 * mE;
         for (let i = 0; i < mFill; i++) { const q = rng(), p = bandAt(q), nn = bandN(q), inner = rng() < 0.3, slider = q < 0.12 || q > 0.88;
-          item(ID, { p: [p[0] - nn[0] * (inner ? 0.006 : 0), p[1] + (rng() - 0.5) * 0.02, p[2] - nn[2] * (inner ? 0.006 : 0)], n: nn }, skB, 1, { col: slider && !inner ? MAT.silver : inner ? MAT.foneC : MAT.foneW, al: inner ? 0.35 : slider ? 0.85 : 0.6, size: 0.55 }); }
+          item(ID, { p: [p[0] - nn[0] * (inner ? 0.006 : 0), p[1] + (rng() - 0.5) * 0.02 * FONE.kb, p[2] - nn[2] * (inner ? 0.006 : 0)], n: nn }, skB, 1, { col: slider && !inner ? MAT.silver : inner ? MAT.foneC : MAT.foneW, al: inner ? 0.35 : slider ? 0.85 : 0.6, size: 0.55 }); }
         // cabo: sai da concha do lado de lá e pende sobre o peito
         const c0 = cupBottom[1], cab = resample(q => { const y = c0[1] - 0.25 * q, x = c0[0] - 0.012 * Math.sin(q * Math.PI) - 0.01 * q, zb = torsoPt(y, frontAng(y, x), 0.034).p[2]; return { p: [x, y, Math.max(c0[2] - 0.02 * q, zb)], n: [0, 0, 1], k: torsoSkin(y), q }; }, Math.max(6, nCab - 4));
         const chC = seg++; cab.forEach(P => item(ID, P, P.k, 0, { chain: chC, col: MAT.cable, al: 0.85, size: 0.42, sub: 5, pA: P.q }));
@@ -3051,6 +3051,7 @@ const hornPathG = (sx, u) => { const hr = restOf('head'), base = norm3([sx * 0.4
   const v = 1 - u, b0 = v * v * v, b1 = 3 * v * v * u, b2 = 3 * v * u * u, b3 = u * u * u;
   return [hr[0] + b0 * B[0] + b1 * C1[0] + b2 * C2[0] + b3 * T[0], hr[1] + b0 * B[1] + b1 * C1[1] + b2 * C2[1] + b3 * T[1], hr[2] + b0 * B[2] + b1 * C1[2] + b2 * C2[2] + b3 * T[2]]; };
 const TPxG = (h, x, off) => { const P = torsoPt(h, frontAng(h, x), off); P.k = torsoSkin(h); return P; };
+const TPxG2 = (h, x, off, back) => { const P = torsoPt(h, back ? backAng(h, x) : frontAng(h, x), off); P.k = torsoSkin(h); return P; };
 const tframeG = n => { const e1 = norm3(cross3([0, 1, 0], n)), e2 = cross3(n, e1); return [e1, e2]; };
 const FACE_C = { EX: 0.034, EY: -0.004 };
 
@@ -3269,14 +3270,14 @@ function meshDefs() {
     const PROF = [[0, -0.02], [0.8, -0.021], [1.07, -0.012], [1.03, -0.002], [1.0, 0.006], [0.92, 0.0075], [0.7, 0.0115], [0.4, 0.0142], [0, 0.0152]];
     const prof = v => { const f = v * (PROF.length - 1), i = Math.min(PROF.length - 2, f | 0), g = f - i; return [lerp(PROF[i][0], PROF[i + 1][0], g), lerp(PROF[i][1], PROF[i + 1][1], g)]; };
     for (const sx of SIDES) { const c = FONE.cups[sx], nC = foneN(sx), [e1, e2] = tframeG(nC), up = e2[1] > 0 ? e2 : e2.map(q => -q), a = FONE.a, b = FONE.b;
-      const pt = (r1, r2, d) => [c[0] + e1[0] * r1 + up[0] * r2 + nC[0] * d, c[1] + e1[1] * r1 + up[1] * r2 + nC[1] * d, c[2] + e1[2] * r1 + up[2] * r2 + nC[2] * d];
+      const K2 = FONE.k, pt = (r1, r2, d) => [c[0] + (e1[0] * r1 + up[0] * r2 + nC[0] * d) * K2, c[1] + (e1[1] * r1 + up[1] * r2 + nC[1] * d) * K2, c[2] + (e1[2] * r1 + up[2] * r2 + nC[2] * d) * K2];   // mesma posição, concha menor
       G.push({ nu: 32, nv: 16, uv: sx > 0 ? [0, 0, 0.5, 0.5] : [0.5, 0, 1, 0.5], fn(u, v) { const [rho, d] = prof(v), th = u * TAU, ct = Math.cos(th), st = Math.sin(th); const p = pt(ct * a * rho, st * b * rho, d);
         return { p, n: norm3([e1[0] * ct + up[0] * st + nC[0] * (v - 0.5) * 2, e1[1] * ct + up[1] * st + nC[1] * (v - 0.5) * 2, e1[2] * ct + up[2] * st + nC[2] * (v - 0.5) * 2]), k: skC }; } });
-      G.push(tubeGrid(q => { const th = q * Math.PI; return pt(Math.cos(th) * a * 1.16, Math.sin(th) * b * 1.2 + 0.004, -0.002); }, () => 0.0032, skC, { nu: 8, nv: 18, uv: [0, 0.5, 0.5, 0.6] }));
+      G.push(tubeGrid(q => { const th = q * Math.PI; return pt(Math.cos(th) * a * 1.16, Math.sin(th) * b * 1.2 + 0.004, -0.002); }, () => 0.0032 * FONE.k, skC, { nu: 8, nv: 18, uv: [0, 0.5, 0.5, 0.6] }));
       yokeTop[sx] = pt(0, b * 1.2 + 0.012, -0.002); }
     const ctrl = [yokeTop[1], [0.108, 1.49, 0.02], [0.07, 1.496, -0.07], [0, 1.498, -0.094], [-0.07, 1.496, -0.07], [-0.108, 1.49, 0.02], yokeTop[-1]], tmp = [0, 0, 0];
-    G.push(tubeGrid(q => crPath(ctrl, q, [0, 0, 0]), () => 0.0045, skB, { nu: 12, nv: 40, ry: () => 0.011, up: [0, 1, 0], uv: [0, 0.6, 1, 0.8] }));
-    { const c0 = FONE.cups[1], [e1, e2] = tframeG(foneN(1)), up = e2[1] > 0 ? e2 : e2.map(q => -q), cb = [c0[0] - up[0] * FONE.b * 1.02, c0[1] - up[1] * FONE.b * 1.02, c0[2] - up[2] * FONE.b * 1.02];   // cabo
+    G.push(tubeGrid(q => crPath(ctrl, q, [0, 0, 0]), () => 0.0038, skB, { nu: 12, nv: 40, ry: () => 0.011 * FONE.kb, up: [0, 1, 0], uv: [0, 0.6, 1, 0.8] }));
+    { const c0 = FONE.cups[1], [e1, e2] = tframeG(foneN(1)), up = e2[1] > 0 ? e2 : e2.map(q => -q), cb = [c0[0] - up[0] * FONE.b * 1.02 * FONE.k, c0[1] - up[1] * FONE.b * 1.02 * FONE.k, c0[2] - up[2] * FONE.b * 1.02 * FONE.k];   // cabo
       G.push(tubeGrid(q => { const y = cb[1] - 0.25 * q, x = cb[0] - 0.012 * Math.sin(q * Math.PI) - 0.01 * q, zb = torsoPt(y, frontAng(y, x), 0.034).p[2]; return [x, y, Math.max(cb[2] - 0.02 * q, zb)]; }, () => 0.0016, q => torsoSkin(cb[1] - 0.25 * q), { nu: 6, nv: 24, uv: [0, 0.8, 1, 1] })); }
     add({ id: 'fone', item: ID, part: 1, mat: MAT_CLOTH, gloss: 0.55, grids: G, tw: 256, th: 256, paint(u, v, get, o) {
       if (v < 0.5) { const vv = (u % 0.5) * 2, w = v * 2, [rho] = prof(w);   // u: ângulo; w: perfil da concha
@@ -3361,6 +3362,42 @@ function meshDefs() {
       quadGrid([c[0], c[1], c[2] - HW], X, Y2, TH, HH, [0, 0, -1], K, { uv: [0.5, 0, 0.55, 1] }), quadGrid([c[0], c[1], c[2] + HW], X, Y2, TH, HH, Z, K, { uv: [0.5, 0, 0.55, 1] }), quadGrid([c[0], c[1] + HH, c[2]], X, Z, TH, HW, Y2, K, { uv: [0.5, 0, 0.55, 1] }), quadGrid([c[0], c[1] - HH, c[2]], X, Z, TH, HW, [0, -1, 0], K, { uv: [0.5, 0, 0.55, 1] })],
       paint(u, v, get, o) { if (u < 0.5) { const line = Math.abs(fract(v * 9) - 0.5) < 0.04 && u > 0.08; const ink = Math.abs(v - 0.55) < 0.02 && u > 0.1 && u < 0.38; return set4(o, ink ? [0.3, 0.24, 0.42] : line ? [0.62, 0.62, 0.82] : [0.95, 0.88, 1.05].map(q => q * (0.85 + 0.15 * vnoiseP(u * 30, v * 30, 30))), 1); }
         set4(o, u < 0.55 && u > 0.5 && Math.abs(fract(v * 40) - 0.5) < 0.2 ? [0.75, 0.78, 0.95] : [0.3, 0.24, 0.42], 1); } });
+  }
+  /* ===== tiras do top: as cruzadas sobre o colo + as alças — tubo achatado varrendo os MESMOS caminhos da partícula ===== */
+  { const ID = ITEM_ID.camisa, G = [], skT = (q, P) => P.k;
+    // fora do tronco puro (h > 1,40) a malha da pele desliza para o pescoço: a tira desce até encostar nela, como no corpo
+    const snap = (P, off) => { if (P.p[1] <= NECK_H0) return P; const zc = torsoAt(P.p[1])[2], ang = Math.atan2(P.p[0], P.p[2] - zc), rP = Math.hypot(P.p[0], P.p[2] - zc); let h = P.p[1];
+      for (let k = 0; k < 50 && h > NECK_H0; k++) { const S = torsoNeckPt(h, ang, 0); if (Math.hypot(S.p[0], S.p[2] - zc) >= rP - 0.004) break; h -= 0.0015; }
+      return torsoNeckPt(h, ang, off); };
+    const TPm = (h, x, off, back) => snap(TPxG2(h, x, off, back), off);
+    for (const [hl, hr] of [[1.344, 1.284], [1.284, 1.344], [1.296, 1.248], [1.248, 1.296]]) { const A = TPxG(hl, topVx(hl), 0.007), B = TPxG(hr, -topVx(hr), 0.007);
+      const path = q => { const p = lerp3(A.p, B.p, q), sf = torsoPt(p[1], frontAng(p[1], p[0]), 0.006).p[2]; p[2] = Math.max(p[2], sf); return p; };
+      G.push(tubeGrid(path, () => 0.0039, q => torsoSkin(path(q)[1]), { nu: 8, nv: 26, ry: () => 0.0012, up: [0, 0, 1], uv: [0, 0, 0.5, 1] })); }
+    for (const sx of SIDES) { const at = q => { let h, x, back = false; if (q < 0.35) { const f = q / 0.35; h = lerp(TOP.sh, 1.452, f); x = lerp(TOP.sx, 0.1, f); }
+        else if (q < 0.6) { const f = (q - 0.35) / 0.25, a0 = frontAng(1.455, 0.1), P = torsoPt(1.458, sx * lerp(a0, Math.PI - a0, f), 0.008); P.k = torsoSkin(1.458); return snap(P, 0.0045); }
+        else { const f = (q - 0.6) / 0.4; h = lerp(1.452, 1.257, f); x = lerp(0.1, 0.08, f); back = true; } return TPm(h, sx * x, 0.007, back); };
+      G.push(tubeGrid(q => at(q).p, () => 0.0028, q => at(q).k, { nu: 8, nv: 48, ry: () => 0.0011, up: [0, 1, 0], uv: [0.5, 0, 1, 1] })); }
+    add({ id: 'camisa.tiras', item: ID, part: 0, mat: MAT_CLOTH, gloss: 0.35, zb: 0.004, grids: G, tw: 64, th: 128, paint(u, v, get, o) { const a = fract(u * 2), rib = 0.5 + 0.5 * Math.sin(v * 260);
+      const edge = Math.abs(Math.cos(a * TAU)) > 0.82; set4(o, edge ? MAT.topE : MAT.topC.map(q => q * (0.78 + 0.3 * rib)), 1); } });   // elástico vermelho com debrum claro
+  }
+  /* ===== corrente da lombar: dois fios dourados + coração grande e dois pequenos (extrudados) + pingentes ===== */
+  { const ID = ITEM_ID.corrente, TPg = (h, ang, off) => { const P = torsoPt(h, ang, off); P.k = torsoSkin(h); return P; }, G = [];
+    const hAt = a => lerp(0.983, 1.008, Math.pow(Math.abs(Math.abs(a) - Math.PI) / (Math.PI - 1.9), 1.6));
+    for (const drop of [0, 0.007]) { const path = q => { const a = lerp(1.9, TAU - 1.9, q); return TPg(hAt(a) - drop * Math.sin(q * Math.PI), a, 0.0045); };
+      G.push(tubeGrid(q => path(q).p, () => 0.0011, q => path(q).k, { nu: 6, nv: 80, uv: [0, 0, 0.25, 1] })); }
+    const heart = (a, size) => { const c = TPg(hAt(a) - 0.004, a, 0.006), [e1, e2] = tframeG(c.n), K = c.k, nz = c.n, T = 0.0011;   // contorno de coração com espessura
+      const at = (q, s, d) => { const [hx, hy] = heartXY(q); return [c.p[0] - e1[0] * hx * size * s + e2[0] * hy * size * s + nz[0] * d, c.p[1] - e1[1] * hx * size * s + e2[1] * hy * size * s + nz[1] * d, c.p[2] - e1[2] * hx * size * s + e2[2] * hy * size * s + nz[2] * d]; };
+      G.push({ nu: 36, nv: 5, uv: [0.25, 0, 0.75, 1], fn(u, v) { return { p: at(u, v, T + 0.0012 * (1 - v * v)), n: nz, k: K }; } });                           // frente (abaulada)
+      G.push({ nu: 36, nv: 2, uv: [0.25, 0, 0.75, 1], fn(u, v) { return { p: at(u, v, -T), n: nz.map(q => -q), k: K }; } });                                       // costas
+      G.push({ nu: 36, nv: 1, uv: [0.75, 0, 1, 1], fn(u, v) { const [hx, hy] = heartXY(u); return { p: at(u, 1, lerp(-T, T, v)), n: norm3([-e1[0] * hx + e2[0] * hy, -e1[1] * hx + e2[1] * hy, -e1[2] * hx + e2[2] * hy]), k: K }; } });   // lateral (aro dourado)
+      return c; };
+    const cc = heart(Math.PI, 0.013); heart(2.55, 0.0085); heart(-2.55, 0.0085);
+    for (let k = 0; k < 2; k++) { const path = q => TPg(cc.p[1] - 0.012 - 0.026 * q, Math.PI + (k ? 0.035 : -0.035) * (1 - q * 0.5), 0.005 + 0.004 * q);
+      G.push(tubeGrid(q => path(q).p, () => 0.0009, q => path(q).k, { nu: 5, nv: 16, uv: [0, 0, 0.25, 1] })); }
+    add({ id: 'corrente', item: ID, part: 0, mat: MAT_METAL, gloss: 0.9, zb: 0.003, grids: G, tw: 128, th: 64, paint(u, v, get, o) {
+      if (u < 0.25) return set4(o, (Math.floor(v * 160) % 2) ? MAT.gold.map(q => q * 0.8) : lerp3(MAT.gold, MAT.chain, 0.5).map(q => q * 0.8), 1);   // elos alternados
+      if (u < 0.75) { const r = v; set4(o, lerp3([0.95, 0.12, 0.5], [1.4, 0.45, 1.0], smooth(0.35, 0, r) * 0.7).map(q => q * (r > 0.88 ? 0.6 : 1)), 1); return; }   // joia: miolo claro, borda funda
+      set4(o, MAT.gold.map(q => q * 0.85), 1); } });
   }
   /* ===== liga (tiras do cós à meia rasgada, com regulador, presilha e gancho) — o MESMO caminho da partícula ===== */
   { const ID = ITEM_ID.liga, s = NET_S, F2 = limbFrame('hp' + s, 'kn' + s), TPg = (h, ang, off) => { const P = torsoPt(h, ang, off); P.k = torsoSkin(h); return P; }, G = [];
@@ -3510,7 +3547,7 @@ function meshBuildStep(budgetMs) {
 /* ---------- quietude: só pose/forma de verdade contam como movimento; respiração e balanço ambiente não ---------- */
 /* ---------- presença: a malha fica o tempo todo, em qualquer pose ou gesto; só a TRANSFORMAÇÃO de troca de pose
    (e a construção/dissolução de forma ou de parte) a desfaz, e ela se refaz sozinha logo depois ---------- */
-const MESH_ITEMS = (() => { const m = new Uint8Array(18); ['fone', 'coturnos', 'bloco', 'jaqueta', 'meias', 'short', 'camisa', 'piercing', 'choker', 'liga', 'chifres', 'cauda', 'asas', 'unhas', 'tatuagem'].forEach(n => m[ITEM_ID[n]] = 1); return m; })();
+const MESH_ITEMS = (() => { const m = new Uint8Array(18); ['fone', 'coturnos', 'bloco', 'jaqueta', 'meias', 'short', 'camisa', 'piercing', 'choker', 'liga', 'corrente', 'chifres', 'cauda', 'asas', 'unhas', 'tatuagem'].forEach(n => m[ITEM_ID[n]] = 1); return m; })();
 const MESH_DIM = 0.86;   // a partícula nunca some toda por baixo da malha: fica o brilho fino de fragmento
 const MESH_POSE_T = 1.15;   // s de transformação depois de trocar de pose
 const MESH_UI = { body: true, face: true };   // botões: malha do corpo / malha do rosto e cabelo

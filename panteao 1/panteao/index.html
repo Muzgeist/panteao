@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panteão · protótipo visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/panteao.css">
+</head>
+<body>
+<!-- área de trabalho SIMULADA: no app real, isto é o próprio sistema operacional -->
+<div id="desktop" aria-hidden="true"><span class="desk__lbl">área de trabalho simulada · protótipo visual — sem backend, sem integração com o sistema, sem modelo de linguagem</span></div>
+
+<header id="topbar">
+  <span class="tb__brand">Panteão</span>
+  <span id="lili-chip" class="tb__lili" hidden></span>
+  <span class="tb__sp"></span>
+  <span id="clock" class="tb__clock"></span>
+</header>
+
+<!-- casco: abre e fecha sob demanda. Conteúdo persistente = composição da Nyx; superfícies dos agentes = painéis de HUD à direita -->
+<div id="casco" hidden></div>
+<!-- canal do Cérbero: camada própria, fora do casco e independente da Nyx -->
+<div id="canal-cerbero"></div>
+
+<!-- canto: presença ambiente + avisos (forma abstrata de cada agente). Vive fora do casco. -->
+<div id="dock" aria-label="Presenças e avisos dos agentes"></div>
+
+<button id="launcher" type="button" aria-pressed="false" title="Ctrl+Espaço">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.1"><path d="M4 15 9 7l5 5 6-7"/><path d="M9 7l2 11"/></g><g fill="currentColor"><circle cx="4" cy="15" r="1.6"/><circle cx="9" cy="7" r="1.6"/><circle cx="14" cy="12" r="1.6"/><circle cx="20" cy="5" r="1.6"/><circle cx="11" cy="18" r="1.6"/></g></svg>
+  <span class="lbl">Abrir o painel</span>
+</button>
+
+<aside id="sim" aria-label="Simulador de eventos (mock)">
+  <button class="sim__t" type="button"><b>Simulador</b><span>eventos fictícios · mock</span></button>
+  <div class="sim__b"></div>
+</aside>
+
+<div id="modal-layer"></div>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/engine.js"></script>
+<script src="js/core/renderer.js"></script>
+<script src="js/core/stage.js"></script>
+<script src="js/core/composite.js"></script>
+<script src="js/forms/nyx.js"></script>
+<script src="js/forms/cerbero.js"></script>
+<script src="js/forms/caronte.js"></script>
+<script src="js/forms/ogum.js"></script>
+<script src="js/forms/morfeu.js"></script>
+<script src="js/system/mock.js"></script>
+<script src="js/system/agents.js"></script>
+<script src="js/ui/seals.js"></script>
+<script src="js/system/notify.js"></script>
+<script src="js/ui/declaration.js"></script>
+<script src="js/ui/ceremony.js"></script>
+<script src="js/ui/windows.js"></script>
+<script src="js/surfaces/common.js"></script>
+<script src="js/surfaces/lilith.js"></script>
+<script src="js/surfaces/nyx.js"></script>
+<script src="js/surfaces/agents.js"></script>
+<script src="js/surfaces/transversal.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

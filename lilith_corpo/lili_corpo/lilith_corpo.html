@@ -127,6 +127,7 @@ select{background:var(--panel-solid);color:var(--ink);border:1px solid var(--lin
         <button class="chip" data-v="nuvem">Nuvem</button>
         <button class="chip" data-v="vortice">Vórtice</button>
         <button class="chip" data-v="rajada">Rajada</button>
+        <button class="chip" data-v="coracaoOrbita" title="coração partido em órbita: núcleo que bate, pedaços que racham">Coração em órbita</button>
         <button class="chip" data-v="circulo">Círculo</button>
         <button class="chip" data-v="quadrado">Quadrado</button>
         <button class="chip" data-v="triangulo">Triângulo</button>
@@ -137,6 +138,20 @@ select{background:var(--panel-solid);color:var(--ink);border:1px solid var(--lin
       </div>
       <div class="textrow"><input type="text" id="txt" value="LILI" maxlength="14" aria-label="Texto para formar"><button class="chip" id="txtGo" type="button">Formar texto</button></div>
       <label class="file"><input type="file" id="img" accept="image/*"><span>Imagem → forma</span></label>
+    </section>
+
+    <section class="sec">
+      <div class="sec-h"><h2>Ações</h2><small>pegar, deletar, viajar</small></div>
+      <div class="chips">
+        <button class="chip" id="actGrab" type="button" title="a mão vira enxame e segura um ponto ao lado dela">Pegar</button>
+        <button class="chip" id="actRelease" type="button">Soltar</button>
+        <button class="chip" id="actDelete" type="button" title="chega no ponto, sobe em espiral e queima">Deletar</button>
+      </div>
+      <div class="chips">
+        <button class="chip" id="trFluxo" type="button" title="corrente visível até o outro lado">Viajar: fluxo</button>
+        <button class="chip" id="trPortal" type="button" title="rasgo → rasgo, quase instantâneo">Viajar: portal</button>
+        <button class="chip" id="trAmbos" type="button" title="rasgo, corrente e rasgo">Viajar: ambos</button>
+      </div>
     </section>
 
     <section class="sec">
@@ -159,7 +174,6 @@ select{background:var(--panel-solid);color:var(--ink);border:1px solid var(--lin
         <button class="chip" data-v="espreguicar">Espreguiçar</button>
         <button class="chip" data-v="encostar">Encostar</button>
         <button class="chip" data-v="sentar">Sentar</button>
-        <button class="chip" data-v="andar">Andar</button>
         <button class="chip" data-v="pensativa">Pensativa</button>
         <button class="chip" data-v="ombros">Dar de ombros</button>
         <button class="chip" data-v="dancar">Dançar</button>
@@ -365,11 +379,15 @@ function hilbert(x, y, n) {
    (detalhes primeiro, estrutura por último), as duas ao mesmo tempo.
    ===================================================================== */
 const STEM_COL = [0.5, 0.46, 0.82];
+/* FOGO — vocabulário escasso: só em deletar (espiral que queima), na borda do rasgo do portal e na fagulha
+   do fragmento que racha no coração em órbita. Nunca em estado calmo. k: 0 brasa funda → 1 núcleo quase branco */
+const FIRE_K = [[0, [0.32, 0.02, 0.02]], [0.3, [0.85, 0.08, 0.03]], [0.6, [1.5, 0.42, 0.08]], [0.85, [1.65, 1.0, 0.32]], [1, [1.75, 1.5, 1.15]]];
+function FIRE(k) { k = clamp(k, 0, 1); for (let i = 1; i < FIRE_K.length; i++) if (k <= FIRE_K[i][0]) { const [k0, c0] = FIRE_K[i - 1], [k1, c1] = FIRE_K[i], f = (k - k0) / (k1 - k0); return [lerp(c0[0], c1[0], f), lerp(c0[1], c1[1], f), lerp(c0[2], c1[2], f)]; } return FIRE_K[4][1]; }
 function makeSlots(N) {
   const F = () => new Float32Array(N);
   return { x: F(), y: F(), z: F(), r: F(), g: F(), b: F(), a: F(), size: F(), k: F(), turb: F(), glitch: F(), rot: F(),
     shape: new Uint8Array(N), warp: new Int32Array(N), group: new Int32Array(N), owner: new Int32Array(N),
-    order: F(), act: new Float64Array(N), stem: new Uint8Array(N) };
+    order: F(), act: new Float64Array(N), stem: new Uint8Array(N), snap: new Uint8Array(N) };
 }
 class Engine {
   constructor(N) {
@@ -423,7 +441,7 @@ class Engine {
     this.disintegrating = !!opts.disintegrate;
     // 2) a forma nova escreve seus slots num buffer limpo
     const S = this.S = prevS === this.bufA ? this.bufB : this.bufA;
-    for (let i = 0; i < N; i++) { S.group[i] = 0; S.shape[i] = 1; S.rot[i] = 99; S.stem[i] = 0; S.order[i] = -1; S.warp[i] = 0; S.glitch[i] = 0; S.turb[i] = 0; S.k[i] = 0.9; S.a[i] = 0; S.size[i] = 1; }
+    for (let i = 0; i < N; i++) { S.group[i] = 0; S.shape[i] = 1; S.rot[i] = 99; S.stem[i] = 0; S.order[i] = -1; S.warp[i] = 0; S.glitch[i] = 0; S.turb[i] = 0; S.k[i] = 0.9; S.a[i] = 0; S.size[i] = 1; S.snap[i] = 0; }
     this.form = form; this.formName = name;
     form.build(this);
     form.update(this, t0, 0);
@@ -564,6 +582,7 @@ class Engine {
     if (this.char && ((this.form && this.form.usesCharacter) || (old && old.usesCharacter))) this.char.update(dt, this.t, this);
     if (old) { const S0 = this.S; this.S = this.O; old.update(this, this.t, dt); this.S = S0; }
     this.form.update(this, this.t, dt);
+    if (this.travel) travelTick(this);
     this.updateCamera(dt);
     this.churn(dt);
     this.integrate(dt);
@@ -658,7 +677,8 @@ class Engine {
       // células em trânsito rápido ficam claras (dados em voo); flash ao se especializar
       const sp = Math.sqrt(vx * vx + vy * vy + vz * vz), tr = clamp((sp - 1.4) / 4, 0, 1) * 0.7;
       r = lerp(r, PAL.cyan[0] * 1.2, tr) + fr + flash * 0.9; g = lerp(g, PAL.cyan[1] * 1.2, tr) + fg + flash * 0.85; b = lerp(b, PAL.cyan[2] * 1.2, tr) + fb + flash;
-      P.r[i] += (r - P.r[i]) * cr; P.g[i] += (g - P.g[i]) * cr; P.b[i] += (b - P.b[i]) * cr;
+      const cc = S.snap[s] && arrive > 0.9 ? 1 : cr;   // snap: troca de cor por corte (glitch), não por transição
+      P.r[i] += (r - P.r[i]) * cc; P.g[i] += (g - P.g[i]) * cc; P.b[i] += (b - P.b[i]) * cc;
       P.a[i] += (TA + flash * 0.4 - P.a[i]) * ar;
       P.sz[i] += (TSZ - P.sz[i]) * zr; P.shp[i] = TSH; P.rotT[i] = TROT; P.gl[i] = TGL;
     }
@@ -1080,26 +1100,6 @@ const POSES = {
     armSet(T, 'L', { abd: 12, flex: 34, twist: -18, el: 42, wf: 8, ix: 0.35, fg: 0.4 });
     armSet(T, 'R', { abd: 16, flex: 26, twist: -12, el: 38, wf: 10, ix: 0.35, fg: 0.4 });
   } }),
-  andar: () => {
-    const st = { x: 0, dir: 1, mode: 'walk', turnT: 0, ph: 0, lastT: 0 };
-    return { look: 0.35, fn(T, t, c) {
-      const dt = clamp(t - st.lastT, 0, 0.1); st.lastT = t;
-      const speed = 0.56, freq = 0.95, lim = 0.72;
-      let walk = 1;
-      if (st.mode === 'walk') { st.x += st.dir * speed * dt; if (Math.abs(st.x) > lim) { st.mode = 'turn'; st.turnT = 0; } }
-      else { st.turnT += dt; walk = 0.35; if (st.turnT > 0.9) { st.dir *= -1; st.mode = 'walk'; } }
-      st.ph += dt * TAU * freq * (st.mode === 'walk' ? 1 : 0.6);
-      const p = st.ph, s1 = Math.sin(p);
-      const facing = st.mode === 'turn' && st.turnT > 0.25 ? -st.dir : st.dir;
-      T('root.x', st.x); T('root.yaw', facing * 68); T('root.y', -0.012 + 0.02 * Math.cos(2 * p) * walk); T('root.roll', 2.5 * s1 * walk);
-      T('spine.yaw', -4 * s1 * walk); T('chest.yaw', 7 * s1 * walk); T('chest.pitch', 2); T('head.yaw', -facing * 22);
-      const kneeL = 5 + 46 * Math.pow(Math.max(0, Math.cos(p + 0.45)), 2), kneeR = 5 + 46 * Math.pow(Math.max(0, Math.cos(p + Math.PI + 0.45)), 2);
-      legSet(T, 'L', { flex: 23 * s1 * walk, kn: kneeL * walk + 3, an: (-8 * Math.sin(p - 0.6) + 4) * walk, abd: 1 });
-      legSet(T, 'R', { flex: -23 * s1 * walk, kn: kneeR * walk + 3, an: (8 * Math.sin(p - 0.6) + 4) * walk, abd: 1 });
-      armSet(T, 'L', { flex: -20 * s1 * walk, abd: 8, el: 18 + 12 * Math.max(0, -s1) * walk });
-      armSet(T, 'R', { flex: 20 * s1 * walk, abd: 8, el: 18 + 12 * Math.max(0, s1) * walk });
-    } };
-  },
   pensativa: () => ({ look: 0.25, face: { gazeX: -0.5, gazeY: 0.75, smileL: 0.0, smileR: 0.25, browL: 0.35, browR: 0.05, browAng: 0.25 }, faceW: 0.8, fn(T, t) {
     const w = Math.sin(t * 0.7);
     armSet(T, 'R', { abd: 14, flex: 58, twist: -40, el: 132, wf: -24, wd: 0, ix: 0.35, fg: 0.7, th: 0.4 });
@@ -1219,7 +1219,7 @@ class Character {
     this.face = Object.assign({}, FACE_BASE); this.faceVel = {}; FACE_KEYS.forEach(k => this.faceVel[k] = 0);
     this.blinkT = 1.5; this.blinkPh = -1; this.blinkDouble = false; this.autoBlink = true; this.talk = false;
     this.blink = 1; this.blinkL = 1; this.blinkR = 1; this.eyeHist = [];
-    this.dis = new Float32Array(6); this.disT = new Float32Array(6); this.swarm = 'reach';
+    this.dis = new Float32Array(6); this.disT = new Float32Array(6); this.swarm = 'reach'; this.place = [0, 0]; this.grab = null;
     this.orb = { x: 0.85, y: 1.35, z: 0.25, vx: 0, vy: 0, vz: 0, tx: 0.85, ty: 1.35, tz: 0.25, timer: 0, glow: 0 };
     this.reach = { ext: 0, prev: 0, goal: [0.8, 1.3, 0.2], active: 0 };
     this.props = { bench: 0, wall: 0, orb: 0, bar: 0, ledge: 0 };
@@ -1275,7 +1275,7 @@ class Character {
     const v = this.v, R = this.JR, P = this.JP;
     for (let j = 0; j < NJ; j++) {
       const J = SK[j], L = this.localR(j, v);
-      if (J.parent < 0) { R.set(L, j * 9); P[j * 3] = v[CI['root.x']]; P[j * 3 + 1] = 0.95 + v[CI['root.y']]; P[j * 3 + 2] = v[CI['root.z']]; continue; }
+      if (J.parent < 0) { R.set(L, j * 9); P[j * 3] = v[CI['root.x']] + this.place[0]; P[j * 3 + 1] = 0.95 + v[CI['root.y']] + this.place[1]; P[j * 3 + 2] = v[CI['root.z']]; continue; }   // place: onde ela está no mundo (travelTo)
       const p = J.parent, po = p * 9, Rp = R.subarray(po, po + 9);
       const W = mMul(Rp, L); R.set(W, j * 9);
       let ox = J.off[0], oy = J.off[1], oz = J.off[2];
@@ -1300,7 +1300,7 @@ class Character {
     const ptr = eng.pointer, ptrActive = ptr.inside && (t - ptr.lastMove) < 2.6;
     this.updateOrb(dt, t, eng);
     const goal = ptrActive ? [ptr.x, ptr.y, 0.15] : [this.orb.x, this.orb.y, this.orb.z];
-    this.reach.goal = goal; this.reach.ptrActive = ptrActive;
+    this.reach.goal = this.grab ? this.grab.pos.slice() : goal; this.reach.ptrActive = ptrActive; this.reach.grab = this.grab;   // pegar/deletar: alvo explícito
     this.updateCuriosity(dt, t, ptr, ptrActive);
     this.updateFlirt(dt, t, ptr, ptrActive);
     this.pose.fn(set, pt, { char: this, goal, eng });
@@ -1371,7 +1371,11 @@ class Character {
     let anyFree = 0; for (let p = 0; p < 6; p++) anyFree = Math.max(anyFree, this.dis[p]);
     this.reach.active = this.swarm === 'reach' ? anyFree : 0;
     this.reach.prev = this.reach.ext;
-    this.reach.ext = 0.84 + 0.16 * Math.sin(t * 1.55);
+    this.reach.ext = this.grab ? 1 : 0.84 + 0.16 * Math.sin(t * 1.55);   // segurando: o braço fica estendido, firme
+    if (this.grab) { const G = this.grab, d = this.dis[G.part];
+      if (G.mode === 'delete' && G.burnT0 == null && d > 0.97 && t - G.t0 > 1.0) { G.burnT0 = t; eng.addRipple(G.pos[0], G.pos[1], G.pos[2], 0.45, FIRE(0.75)); eng.glitchSpike = Math.max(eng.glitchSpike, 0.6); }
+      if (G.mode === 'delete' && G.burnT0 != null && t - G.burnT0 > 3.4) { G.mode = 'regrow'; this.disT[G.part] = 0; }   // queimou: o braço se refaz no lugar
+      if ((G.mode === 'regrow' || G.mode === 'release') && d < 0.01) { this.grab = null; this.swarm = G.prevSwarm || 'reach'; } }
     if (this.reach.active > 0.35 && this.reach.prev < 0.985 && this.reach.ext >= 0.985) {
       const g = this.reach.goal; eng.addRipple(g[0], g[1], g[2], 0.9, PAL.glitch);
       if (this.flirt > 0.3 && t - this.kiss.t0 > 3.5) { this.kiss = { t0: t, pos: [g[0], g[1], 0.62], sc: 1 }; }   // onde ela tocou de verdade
@@ -1858,7 +1862,7 @@ class BodyForm {
     if (this.mode === 'compact') {   // pequena, de pé no canto de baixo à direita da área livre (o painel aberto empurra a área)
       const vw = eng.view, z = COMPACT.zoom, S = eng.screenScale() / Math.max(1e-6, eng.cam.zoom * eng.ucam.zoom) * z, r = eng.char.joint('root');
       const fx = vw.cx * vw.W * 2 - 0.1 * vw.H, fy = vw.H * 0.955;   // onde os pés devem ficar, em pixels
-      return { x: r[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }
+      return { x: r[0] - eng.char.place[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }   // o canto é a casa dela; viajar a tira de lá
     const v = eng.char.view; if (v && VIEW_FOCUS[v.focus]) return VIEW_FOCUS[v.focus](eng.char);
     const pc = eng.char.pose.cam; if (pc) return { x: 0, y: pc.y, zoom: pc.zoom };
     return { x: 0, y: 0.9, zoom: 1 };
@@ -1991,7 +1995,7 @@ class BodyForm {
     }
     /* ---------- acessórios e marca (tipo 4): geometria própria; desligados, viram aura ---------- */
     let dry = 0, dryOn = false;   // modo de medição: conta sem criar
-    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
+    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (!(isFinite(P.p[0]) && isFinite(P.p[1]) && isFinite(P.p[2])))  return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
       chain: o.chain ?? -1, seg: o.seg ?? 0, size: o.size ?? 0.55, shape: o.shape ?? 0, col: o.col || MAT.white, al: o.al ?? 0.8, hang: o.hang || 0, pA: o.pA || 0, pB: o.pB || 0, sub: o.sub || 0, q1: o.q1, q2: o.q2, q3: o.q3, q4: o.q4, sparkle: o.spark ? 1 : 0 }); };
     // linha contínua (contorno) por uma lista de {p, n, k: [j1, j2, w2]}
     const line = (id, pts, part, o = {}) => { const ch = seg++; for (const q of pts) item(id, q, q.k, part, { ...o, chain: ch }); return ch; };
@@ -2396,7 +2400,7 @@ class BodyForm {
         line(ID, resample(q => { const a = lerp(0.6, TAU - 0.6, q); return PT(sxM + Math.cos(a) * 0.0042, syM + Math.sin(a) * 0.0042); }, Math.max(6, nMk - per * TAT.dots.length - TAT.dots.length - mS)), 0, { col: MAT.tatHeart, al: 0.95, size: 0.34 }); }   // lua
       // veias de glitch (pulsam com a carga emocional dela)
       for (const sx of SIDES) { const m = Math.round(nV / 2), mMain = Math.round(m * 0.78), ch = seg++;
-        for (let i = 0; i < mMain; i++) { const q = i / (mMain - 1), [h, a] = veinPath(sx, q), wob = 0.006 * Math.sin(q * 61 + sx) + 0.003 * Math.sin(q * 140), P = TP(h, a + wob / Math.max(0.05, torsoAt(h)[0]), 0.0018);
+        for (let i = 0; i < mMain; i++) { const q = mMain > 1 ? i / (mMain - 1) : 0.5, [h, a] = veinPath(sx, q), wob = 0.006 * Math.sin(q * 61 + sx) + 0.003 * Math.sin(q * 140), P = TP(h, a + wob / Math.max(0.05, torsoAt(h)[0]), 0.0018);
           item(ID, P, P.k, 0, { col: MAT.vein, al: 0.85, size: 0.4, chain: ch, sub: 22, q1: q }); }
         for (let i = 0; i < m - mMain; i++) { const q = 0.08 + 0.84 * rng(), [h, a] = veinPath(sx, q), br = (rng() - 0.5) * 0.03, P = TP(h + Math.abs(br) * 0.6, a + br / Math.max(0.05, torsoAt(h)[0]), 0.0018);   // ramificações curtas
           item(ID, P, P.k, 0, { col: MAT.vein, al: 0.6, size: 0.34, sub: 22, q1: q }); }
@@ -2981,8 +2985,8 @@ class BodyForm {
           if (gq > 0) { glitch = Math.max(glitch, gq * (1 - fq * 0.55)); const m = gq * 0.75 * (1 - fq * 0.4); r = lerp(r, PAL.glitch[0] * 1.2, m); g = lerp(g, PAL.glitch[1] * 1.2, m); b = lerp(b, PAL.glitch[2] * 1.2, m); a = Math.max(a, 0.5 * gq * (ty === 4 ? iw : 1)); }
           if (fq > 0) {
             const A0 = anc[part];
-            let sx, sy, sz, sk2 = 0.5, st2 = 0.25;
-            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1);
+            let sx, sy, sz, sk2 = 0.5, st2 = 0.25, fadeK = 1;
+            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1), GB = glA.grab && glA.grab.part === part ? glA.grab : null;
             if (ch.swarm === 'reach') {
               const G = glA.goal, gx2 = G[0] - A0[0], gy2 = G[1] - A0[1], gz2 = G[2] - A0[2], gl = Math.hypot(gx2, gy2, gz2) + 1e-4, maxL = 2.1;
               const ext = glA.ext * Math.min(1, maxL / gl), Ex = A0[0] + gx2 * ext, Ey = A0[1] + gy2 * ext, Ez = A0[2] + gz2 * ext;
@@ -3000,6 +3004,15 @@ class BodyForm {
               sk2 = 0.62; st2 = 0.12;
               const tip = smooth(0.75, 1, dist);
               r = lerp(r, lerp(PAL.violet[0], PAL.cyan[0] * 1.3, tip), fq * 0.8); g = lerp(g, lerp(PAL.violet[1], PAL.cyan[1] * 1.3, tip), fq * 0.8); b = lerp(b, lerp(PAL.violet[2], PAL.cyan[2] * 1.3, tip), fq * 0.8);
+              if (GB && GB.mode === 'delete' && GB.burnT0 != null) {
+                // deletar: na chegada a mão não pousa — sobe em espiral (a MESMA subida do vórtice) e queima até sumir. Único fogo do reach.
+                const hv = (t - GB.burnT0) * 0.48 - (1 - dist) * 0.62 + fract(sd * 0.1377) * 0.14;
+                if (hv > 0) { const h2 = Math.min(1, hv), r0 = (0.03 + 0.34 * Math.pow(h2, 1.5)) * (0.85 + 0.3 * fract(sd * 0.71)), th = fract(sd * 0.29) * TAU + t * 2.3 - h2 * 5.5;
+                  const vx2 = Ex + 0.12 * Math.sin(t * 0.55 + h2 * 2.4) * h2 + Math.cos(th) * r0, vy2 = Ey + h2 * 1.05, vz2 = Ez + Math.sin(th) * r0, m = smooth(0, 0.14, hv);
+                  sx = lerp(sx, vx2, m); sy = lerp(sy, vy2, m); sz = lerp(sz, vz2, m);
+                  const fc = FIRE(clamp(1 - h2 * 0.9 + 0.12 * Math.sin(t * 23 + sd * 50), 0, 1));
+                  r = lerp(r, fc[0], m); g = lerp(g, fc[1], m); b = lerp(b, fc[2], m); sk2 = 0.75; st2 = 0.05; fadeK = 1 - smooth(0.55, 1.0, hv); }
+              } else if (GB && GB.mode === 'regrow') { sx = x; sy = y; sz = z; fadeK = 1 - fq; }   // depois de queimar, o braço volta a se formar no lugar
             } else if (ch.swarm === 'orbit') {
               const R = 0.42 + sd * 0.42, inc = (D.seed[i] * 7 % 1 - 0.5) * 0.9 + part * 0.4, ang = sd * TAU * 13 + t * (0.75 / R) * (part % 2 ? 1 : -1);
               sx = chest[0] + Math.cos(ang) * R; sy = chest[1] - 0.15 + Math.sin(ang) * R * Math.sin(inc) * 0.5 + Math.sin(t + sd * 9) * 0.02; sz = chest[2] + Math.sin(ang) * R * Math.cos(inc);
@@ -3012,7 +3025,7 @@ class BodyForm {
               r = lerp(r, PAL.violet[0], fq * 0.5); g = lerp(g, PAL.violet[1], fq * 0.5); b = lerp(b, PAL.violet[2], fq * 0.5);
             }
             x = lerp(x, sx, fq); y = lerp(y, sy, fq); z = lerp(z, sz, fq); k = lerp(k, sk2, fq); turb = lerp(turb, st2, fq);
-            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq); shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
+            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq) * fadeK; shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
           }
         }
       }
@@ -3904,11 +3917,220 @@ class CoreForm {
 }
 
 /* =====================================================================
+   LOCOMOÇÃO — ela não anda: vira dado e se reconstrói em outro lugar.
+   'fluxo': corrente visível ponto a ponto (a física de rajada adaptada: cabeça, atraso s, faixa, caminho ondulado)
+   'portal': rasgo na origem → entra → sai já no rasgo do destino (quase instantâneo, sem travessia visível)
+   'ambos': rasgo → corrente → rasgo (versão longa, com peso)
+   ===================================================================== */
+// motivos do rasgo: o MESMO desenho tribal da tatuagem e as MESMAS asas, só em escala de detalhe
+let RIFT_MOTIF = null;
+function riftMotif() {
+  if (RIFT_MOTIF) return RIFT_MOTIF;
+  const tri = [], wing = [], rng = mulberry32(606);
+  const curve = (P, sx) => { const C = P.map(([u, v]) => { const [x, h] = tatXY(sx, u, v); return [x, h, 0]; }); return s2 => crPath(C, s2, [0, 0, 0]); };
+  for (const sx of [1, -1]) TAT.strokes.forEach(st => { const f = curve(st.P, sx);
+    for (let i = 0; i < 70; i++) { const s2 = rng(), t2 = rng() * 2 - 1, w = st.w * (st.a > 0 ? smooth(0, st.a, s2) : 1) * Math.pow(1 - s2, 0.75);
+      const a = f(Math.max(0, s2 - 0.01)), b = f(Math.min(1, s2 + 0.01)), c = f(s2), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      tri.push([c[0] - dy / l * w * t2 * 0.5, c[1] - TAT.h + dx / l * w * t2 * 0.5, s2]); } });
+  for (let i = 0; i < 220; i++) { const [hx, hy] = heartXY(rng()); tri.push([hx * TAT.heart, hy * TAT.heart, 0]); }
+  const K = wingKeys(1, {});
+  for (let i = 0; i < 520; i++) { const q = rng(); let uv;
+    if (q < 0.45) uv = wingUV(K, 1, (rng() * 6) | 0, rng(), 0);                 // ossos
+    else if (q < 0.85) uv = wingUV(K, 0, 1 + ((rng() * 4) | 0), 1, rng());       // borda recortada da membrana
+    else uv = wingUV(K, 2, 0, rng(), 0);                                          // borda de ataque
+    wing.push([uv[0], uv[1], q < 0.45 ? 1 : 0]); }
+  return (RIFT_MOTIF = { tri, wing });
+}
+// contorno do rasgo: lente pontuda, curvada, com borda rasgada (ruído + dentes) que se mexe — nunca um círculo liso
+function riftEdge(u, o, R, tau, out) {
+  const th = u * TAU, sn = Math.sin(th), cs = Math.cos(th), Hh = R.H * (0.22 + 0.78 * o), W = R.W * o;
+  const jag = (vnoiseP(u * 26 + R.sd, tau * 0.9 + R.sd, 26) - 0.5) * 0.95 + (Math.abs(fract(u * 17 + R.sd) - 0.5) - 0.25) * 0.9 + (vnoiseP(u * 71, tau * 2.1, 71) - 0.5) * 0.35;
+  out[0] = R.c[0] + W * Math.sign(sn) * Math.pow(Math.abs(sn), 1.35) * (1 + 0.5 * jag) + 0.07 * o * Math.sin(cs * 2.4 + R.sd);
+  out[1] = R.c[1] + Hh * cs * (1 + 0.04 * jag); out[2] = R.c[2]; return jag;
+}
+class TravelForm {
+  constructor(from, to, mode, bodyMode) {
+    this.from = from; this.to = to; this.mode = mode; this.bodyMode = bodyMode; this.linkAlpha = 0;
+    const d = Math.hypot(to[0] - from[0], to[1] - from[1]); this.dist = d;
+    this.Tm = mode === 'ambos' ? clamp(0.9 + d * 0.6, 1.1, 2.8) : clamp(0.7 + d * 0.5, 0.9, 2.4);
+    this.RA = { c: [from[0], from[1] + 0.85, 0.3], H: 0.86, W: 0.3, sd: 3.1 }; this.RB = { c: [to[0], to[1] + 0.85, 0.3], H: 0.86, W: 0.3, sd: 7.7 };   // na frente dela
+    if (mode === 'fluxo') { this.releaseTime = 0.9; this.buildTime = 1.5; this.rebuildAt = 0.45 + this.Tm * 1.1 + 0.35; this.rebuildTime = 2.0; }
+    else if (mode === 'portal') { this.releaseTime = 0.6; this.buildTime = 1.5; this.rebuildAt = 0.9; this.rebuildTime = 1.6; }
+    else { this.releaseTime = 1.0; this.buildTime = 1.8; this.rebuildAt = 1.0 + this.Tm * 1.15 + 0.6; this.rebuildTime = 2.2; }
+  }
+  camera(eng) { return { x: eng.cam.x, y: eng.cam.y, zoom: eng.cam.zoom }; }   // a câmera fica: ela é que muda de lugar
+  build(eng) {
+    const N = eng.N, S = eng.S, O = eng.O, rng = mulberry32(909), portal = this.mode !== 'fluxo';
+    this.t0 = eng.t; this.d = new Float32Array(N * 12); this.kind = new Uint8Array(N); this.warped = new Uint8Array(N); this.fast = []; this.snapped = false;
+    // de onde ela sai: a silhueta exata do corpo que está se desfazendo
+    const vis = []; if (O) for (let j = 0; j < N; j++) if (!O.stem[j] && O.a[j] > 0.04) vis.push(j);
+    const nDeco = portal ? Math.round(N * 0.19) : 0, M = riftMotif(), dx = this.to[0] - this.from[0], dy = this.to[1] - this.from[1];
+    for (let i = 0; i < N; i++) { const o = i * 12;
+      if (i < 2 * nDeco) { const side = i < nDeco ? 0 : 1, q = (i % nDeco) / nDeco;   // decoração dos dois rasgos
+        const k = q < 0.28 ? 1 : q < 0.4 ? 2 : q < 0.52 ? 3 : q < 0.86 ? 4 : 5;     // 1 borda · 2 brasa · 3 vazio · 4 tribal · 5 ponta de asa
+        this.kind[i] = 10 * (side + 1) + k; let a = rng(), b = rng(), c = rng();
+        if (k === 4) { a = (rng() * M.tri.length) | 0; b = rng() < 0.7 ? 0 : rng() < 0.5 ? 1 : 2; }
+        if (k === 5) { a = (rng() * M.wing.length) | 0; b = rng() < 0.5 ? 1 : -1; c = rng() < 0.5 ? 1 : -1; }
+        this.d.set([a, b, c, rng()], o); S.group[i] = 40 + side; S.order[i] = side ? 0.02 * rng() : 0.08 * rng(); this.fast.push(i); continue; }
+      // massa: cada célula dela
+      const j = vis.length ? vis[(rng() * vis.length) | 0] : -1, sx = j >= 0 ? O.x[j] : this.from[0] + (rng() - 0.5) * 0.3, sy = j >= 0 ? O.y[j] : this.from[1] + rng() * 1.7, sz = j >= 0 ? O.z[j] : 0;
+      const cr = j >= 0 ? O.r[j] : PAL.violet[0], cg = j >= 0 ? O.g[j] : PAL.violet[1], cb = j >= 0 ? O.b[j] : PAL.violet[2], s = rng();
+      this.kind[i] = 0; this.d.set([sx, sy, sz, cr, cg, cb, s, (rng() + rng() + rng()) / 1.5 - 1, rng() * 2 - 1, rng(), rng(), rng()], o);
+      S.group[i] = 42; S.order[i] = 0.1 + 0.85 * s; }
+    this.dx = dx; this.dy = dy;
+  }
+  open(R, tau, a0, a1, c0, c1) { return smooth(a0, a1, tau) * (1 - smooth(c0, c1, tau)); }
+  update(eng, t, dt) {
+    const S = eng.S, N = eng.N, d = this.d, tau = t - this.t0, A = this.RA, B = this.RB, M = riftMotif(), Tm = this.Tm, e3 = [0, 0, 0];
+    const mode = this.mode, last = this.mode === 'portal' ? 0.65 : 0.95;
+    if (!this.snapped && tau > 0) { this.snapped = true; for (const i of this.fast) S.warp[i]++; }   // o rasgo aparece no lugar, não chega voando
+    // abertura dos rasgos (o de destino abre antes da chegada)
+    const oA = mode === 'fluxo' ? 0 : mode === 'portal' ? this.open(A, tau, 0, 0.3, 0.8, 1.1) : this.open(A, tau, 0, 0.5, last + 0.25, last + 0.6);
+    const oB = mode === 'fluxo' ? 0 : mode === 'portal' ? this.open(B, tau, 0.18, 0.45, this.rebuildAt + 0.35, this.rebuildAt + 0.75) : this.open(B, tau, 0.6 + Tm * 0.75, 1.0 + Tm * 0.75, this.rebuildAt + 0.5, this.rebuildAt + 1.0);
+    this.oA = oA; this.oB = oB;
+    const AX = A.c[0], AY = A.c[1], BX = B.c[0], BY = B.c[1], ldx = BX - AX, ldy = BY - AY, ll = Math.hypot(ldx, ldy) + 1e-6, nx = -ldy / ll, ny = ldx / ll, lift = Math.min(0.35, 0.22 * Math.sqrt(ll));
+    const pathAt = (p, out) => { const e = p * p * (3 - 2 * p), wv = (0.11 * Math.sin(p * TAU * 1.2 - tau * 2.6) + 0.05 * Math.sin(p * TAU * 2.7 + tau * 1.7)) * Math.sin(Math.PI * p);
+      out[0] = AX + ldx * e + nx * wv; out[1] = AY + ldy * e + ny * wv + Math.sin(Math.PI * p) * lift; return out; };
+    for (let i = 0; i < N; i++) { const o = i * 12, kd = this.kind[i];
+      if (kd >= 10) { // ---------- rasgo ----------
+        const side = kd >= 20 ? 1 : 0, k = kd % 10, R = side ? B : A, op = side ? oB : oA;
+        if (op < 0.002) { if (side) S.warp[i]++; writeSlot(S, i, R.c[0], R.c[1], R.c[2], 0, 0, 0, 0, 0.5, 0.9, 0.02, 0, 1); continue; }   // fechado: some (no destino, nem viaja até lá)
+        let x, y, z = R.c[2], r, g, b, a, sz = 0.7, sh = 1, gl = 0;
+        if (k === 1 || k === 2) { const u = d[o], jag = riftEdge(u, op, R, tau, e3);
+          const heat = 0.5 + 0.3 * Math.sin(u * TAU * 5 - tau * 6 + jag * 3) + 0.1 * Math.sin(tau * 31 + d[o + 3] * 60);   // brasa correndo pela linha
+          if (k === 1) { x = e3[0]; y = e3[1]; const c = FIRE(clamp(heat + (1 - op) * 0.3, 0, 1)); r = c[0]; g = c[1]; b = c[2]; a = op; sz = 0.95; gl = 0.15; }
+          else { const age = fract(tau * 0.85 + d[o + 1]), ox = e3[0] - R.c[0], oyy = e3[1] - R.c[1], ol = Math.hypot(ox, oyy) + 1e-4;
+            x = e3[0] + ox / ol * age * 0.07 + Math.sin(d[o + 2] * 40 + tau * 3) * 0.012; y = e3[1] + oyy / ol * age * 0.04 + age * 0.17; z += (d[o + 2] - 0.5) * 0.06;
+            const c = FIRE(1 - age * 0.95); r = c[0]; g = c[1]; b = c[2]; a = (1 - age) * op * 0.9; sz = 0.55 * (1 - age * 0.5); sh = 2; } }
+        else if (k === 3) { riftEdge(d[o], op, R, tau, e3); const f = Math.sqrt(d[o + 1]) * 0.9; x = lerp(R.c[0], e3[0], f); y = lerp(R.c[1], e3[1], f);   // vazio: tinta escura dentro do rasgo
+          r = 0.05; g = 0.02; b = 0.08; a = 0.5 * op; sz = 1.1; sh = INK; }
+        else if (k === 4) { const P = M.tri[d[o] | 0], cp = d[o + 1], ks = (cp === 0 ? 4.4 : 2.4) * (0.4 + 0.6 * op), cy = cp === 0 ? 0 : cp === 1 ? 0.56 : -0.56, fy = cp === 2 ? -1 : 1;   // tribal da tatuagem em volta
+          x = R.c[0] + P[0] * ks; y = R.c[1] + cy * R.H * (0.22 + 0.78 * op) + P[1] * ks * fy;
+          const c = lerp3(lerp3(MAT.tatHeart, MAT.tatFill, smooth(0, 0.45, P[2])), MAT.tatTip, smooth(0.45, 1, P[2])); r = c[0] * 1.6; g = c[1] * 1.5; b = c[2] * 1.6; a = op; sz = 0.72; }
+        else { const P = M.wing[d[o] | 0], sx = d[o + 1], top = d[o + 2], kw = 0.46 * op, al = 0.6, ox2 = sx * Math.sin(al), oy2 = Math.cos(al), px2 = sx * Math.cos(al), py2 = -Math.sin(al);   // pontinhas de asa no alto e embaixo
+          const Hh = R.H * (0.22 + 0.78 * op), bx = R.c[0] + (top > 0 ? 0.07 * op * Math.sin(1 * 2.4 + R.sd) : 0.07 * op * Math.sin(-2.4 + R.sd)), by = R.c[1] + top * Hh;
+          x = bx + (ox2 * P[0] + px2 * P[1]) * kw; y = by + top * (oy2 * P[0] + py2 * P[1]) * kw;
+          const c = P[2] ? MAT.wingBone.map(q => q * 1.6) : MAT.wingEdge; r = c[0]; g = c[1]; b = c[2]; a = 0.85 * op; sz = 0.5; }
+        writeSlot(S, i, x, y, z, r, g, b, a, sz, 0.9, 0.02, gl, sh); continue; }
+      // ---------- massa ----------
+      const s = d[o + 6], lane = d[o + 7], zr = d[o + 8], sd2 = d[o + 9], hx = d[o], hy = d[o + 1], hz = d[o + 2], hr = d[o + 3], hg = d[o + 4], hb = d[o + 5];
+      const tx2 = hx + this.dx, ty2 = hy + this.dy;   // o mesmo ponto do corpo, no destino
+      let x = hx, y = hy, z = hz, r = hr, g = hg, b = hb, a = 0.75, sz = 0.8, flow = 0;
+      const streamCol = (sl) => { const c = smooth(0, 0.35, sl), c2 = smooth(0.4, 1, sl); r = lerp(lerp(1.3, PAL.magenta[0], c), PAL.violet[0], c2); g = lerp(lerp(1.3, PAL.magenta[1], c), PAL.violet[1], c2); b = lerp(lerp(1.4, PAL.magenta[2], c), PAL.violet[2], c2); };
+      const corr = (p) => { pathAt(p, e3); const w = 0.035 + 0.17 * Math.pow(Math.sin(Math.PI * p), 0.8); let px = e3[0] + nx * lane * w, py = e3[1] + ny * lane * w, pz = zr * w * 1.1;
+        if (s > 0.5) { const e = (s - 0.5) / 0.5, an = tau * 5 + sd2 * 9; px += Math.cos(an) * 0.08 * e * Math.sin(Math.PI * p); py += Math.sin(an) * 0.08 * e * Math.sin(Math.PI * p); }
+        e3[0] = px; e3[1] = py; e3[2] = pz; return e3; };
+      if (mode === 'fluxo') { const p = clamp((tau - 0.45 - s * 0.55) / (Tm * (0.75 + 0.5 * s)), 0, 1);   // cabeça rápida, cauda lenta: a corrente se estica
+        if (p > 0) { corr(p); const f0 = smooth(0, 0.12, p), f1 = smooth(0.88, 1, p); x = lerp(lerp(hx, e3[0], f0), tx2, f1); y = lerp(lerp(hy, e3[1], f0), ty2, f1); z = lerp(lerp(hz, e3[2], f0), hz, f1);
+          const rr = r, gg = g, bb = b; streamCol(s); const m = f0 * (1 - f1); r = lerp(rr, r, m); g = lerp(gg, g, m); b = lerp(bb, b, m); a = lerp(0.75, 0.55 + 0.4 * (1 - Math.abs(lane)), m); sz = lerp(0.8, 1.0 - 0.35 * s, m); flow = m; } }
+      else { const e = (mode === 'portal' ? 0.3 + s * 0.35 : 0.5 + s * 0.45), fin = smooth(e - 0.26, e, tau);   // entra no rasgo em espiral
+        if (fin > 0 && (mode === 'ambos' || tau < e)) { const sp = (1 - fin) * (0.12 + 0.25 * sd2), an = sd2 * TAU + tau * (7 + 6 * fin);
+          x = lerp(hx, AX + Math.cos(an) * sp * 0.5, fin); y = lerp(hy, AY + Math.sin(an) * sp, fin); z = lerp(hz, A.c[2], fin);
+          const m = fin; streamCol(0.15 + s * 0.3); r = lerp(hr, r, m); g = lerp(hg, g, m); b = lerp(hb, b, m); a = 0.75 * (1 - 0.7 * fin * fin); sz = lerp(0.8, 0.55, fin); }
+        if (mode === 'portal' && tau >= e) { if (!this.warped[i]) { this.warped[i] = 1; S.warp[i]++; }   // atravessa: some na origem, nasce no destino
+          const f2 = smooth(e, e + 0.3, tau), an = sd2 * TAU - tau * 6, sp = (1 - f2) * 0.2;
+          x = lerp(BX + Math.cos(an) * sp * 0.5, tx2, f2); y = lerp(BY + Math.sin(an) * sp, ty2, f2); z = lerp(B.c[2], hz, f2); streamCol(0.2); r = lerp(r, hr, f2); g = lerp(g, hg, f2); b = lerp(b, hb, f2); a = 0.3 + 0.5 * f2; sz = lerp(0.55, 0.8, f2); }
+        if (mode === 'ambos' && tau >= e) { const Ti = Tm * (0.75 + 0.5 * s), p = clamp((tau - e - 0.08 - s * 0.3) / Ti, 0, 1);
+          if (p <= 0) { x = AX; y = AY; z = A.c[2]; a = 0.12; }   // dentro do rasgo, esperando a corrente
+          else if (p < 1) { corr(p); x = e3[0]; y = e3[1]; z = e3[2]; streamCol(s); a = 0.6 + 0.35 * (1 - Math.abs(lane)); sz = 1.0 - 0.3 * s; flow = 1; }
+          else { const f2 = smooth(0, 0.3, tau - e - 0.08 - s * 0.3 - Ti), an = sd2 * TAU - tau * 6, sp = (1 - f2) * 0.2;   // sai do rasgo de destino
+            x = lerp(BX + Math.cos(an) * sp * 0.5, tx2, f2); y = lerp(BY + Math.sin(an) * sp, ty2, f2); z = lerp(B.c[2], hz, f2); streamCol(0.2); r = lerp(r, hr, f2); g = lerp(g, hg, f2); b = lerp(b, hb, f2); a = 0.3 + 0.5 * f2; } } }
+      writeSlot(S, i, x, y, z, r, g, b, a, sz, flow > 0.5 ? 0.85 : 0.8, flow > 0.5 ? 0.06 : 0.04, 0, flow > 0.5 ? 3 : 1); }
+    centerFocus(eng);
+  }
+}
+// o motor chama a cada passo enquanto há viagem: na hora certa ela se reconstrói no destino (mesmo modo, mesmo N)
+function travelTick(eng) {
+  const T = eng.travel, F = eng.form;
+  if (!T || F !== T.form) { eng.travel = null; return; }   // trocaram de forma no meio: a viagem é cancelada
+  if (eng.t - T.t0 >= F.rebuildAt) { eng.char.place = [T.to[0], T.to[1]]; eng.travel = null;
+    eng.setForm(T.formName, FORMS[T.formName](), { buildTime: F.rebuildTime }); syncChips('form', T.formName); }
+}
+
+/* =====================================================================
+   CORAÇÃO PARTIDO EM ÓRBITA — forma dela, não um molde genérico
+   núcleo que bate (contrai rápido, expande devagar) e troca de cor por CORTE; pedaços de um coração
+   que nunca fecha orbitando em raios erráticos; quem passa perto demais racha e solta fagulha de fogo;
+   um pedaço-assinatura nunca racha (a mesma assimetria permanente do corpo dela)
+   ===================================================================== */
+class HeartOrbitForm {
+  constructor() { this.linkAlpha = 0; }
+  camera() { return { x: 0, y: 0, zoom: 1 }; }
+  build(eng) {
+    const N = eng.N, S = eng.S, rng = mulberry32(1313), nC = Math.round(N * 0.27), nF = Math.round(N * 0.6), NF = 9, HS = 0.42;
+    // fatia o coração em 9 pedaços (células de Voronoi) — cada pedaço encolhe para o próprio centro: as frestas nunca fecham
+    const seeds = []; while (seeds.length < NF) { const x = rng() * 2 - 1, y = rng() * 2 - 1; if (inHeart(x, y) && seeds.every(q => Math.hypot(q[0] - x, q[1] - y) > 0.42)) seeds.push([x, y]); }
+    const pts = [[], [], [], [], [], [], [], [], []];
+    while (pts.reduce((n, p) => n + p.length, 0) < nF) { let x, y, edge = 0;
+      if (rng() < 0.3) { const [hx, hy] = heartXY(rng()); x = hx * 0.985; y = hy * 0.985; edge = 1; } else { do { x = rng() * 2 - 1; y = rng() * 2 - 1; } while (!inHeart(x, y)); }
+      let best = 0, bd = 9, sec = 9; seeds.forEach((q, k) => { const dd = Math.hypot(q[0] - x, q[1] - y); if (dd < bd) { sec = bd; bd = dd; best = k; } else if (dd < sec) sec = dd; });
+      pts[best].push([x, y, edge || (sec - bd < 0.06 ? 2 : 0)]); }   // 2: borda da rachadura
+    this.F = seeds.map((q, k) => { const P = pts[k], cx = P.reduce((a, p) => a + p[0], 0) / P.length, cy = P.reduce((a, p) => a + p[1], 0) / P.length;
+      return { cx, cy, Rb: 0.6 + rng() * 0.6, inc: (rng() - 0.5) * 1.3, node: rng() * TAU, ph: rng() * TAU, ns: rng() * 50, spin: (rng() - 0.5) * 1.6, psi: rng() * TAU, shedPh: 0, R: 1, x: 0, y: 0, z: 0 }; });
+    // pedaço-assinatura: o do lóbulo de cima à esquerda (índice fixo, escolhido pela forma, não por sorte)
+    let sig = 0; this.F.forEach((f, k) => { if (f.cx - f.cy * 0.7 < this.F[sig].cx - this.F[sig].cy * 0.7) sig = k; }); this.sig = sig;
+    this.d = new Float32Array(N * 8); this.kind = new Uint8Array(N); this.lastP = new Float32Array(N); this.sparkT = new Float32Array(N).fill(-99); this.hidden = new Uint8Array(N); this.sp = new Float32Array(N * 6);
+    let i = 0;
+    for (; i < nC; i++) { const u = rng() * 2 - 1, a = rng() * TAU, rr = Math.cbrt(rng()) * (rng() < 0.55 ? 1 : 0.55), q = Math.sqrt(1 - u * u); this.kind[i] = 1; this.d.set([q * Math.cos(a) * rr, u * rr, q * Math.sin(a) * rr, rng()], i * 8); S.group[i] = 50; S.snap[i] = 1; S.order[i] = rr * 0.3; }
+    for (let k = 0; k < NF; k++) { const f = this.F[k]; for (const p of pts[k]) { if (i >= N) break; this.kind[i] = 10 + k; this.d.set([(p[0] - f.cx) * HS * 0.86, (p[1] - f.cy) * HS * 0.86, (rng() - 0.5) * 0.012, rng(), p[2]], i * 8); S.group[i] = 60 + k; S.order[i] = 0.3 + 0.6 * rng(); i++; } }
+    for (; i < N; i++) { const u = rng() * 2 - 1, a = rng() * TAU, rr = 0.5 + rng() * 1.1, q = Math.sqrt(1 - u * u); this.kind[i] = 2; this.d.set([q * Math.cos(a) * rr, u * rr * 0.65, q * Math.sin(a) * rr, rng()], i * 8); S.group[i] = 51; S.order[i] = 0.9 + 0.1 * rng(); }
+    this.tPrev = null; this.HS = HS;
+  }
+  beat(t) {   // lub-dub: contração rápida, expansão lenta — nunca senoide
+    const ph = fract(t / 0.86); let s;
+    if (ph < 0.07) s = 1 - 0.22 * smooth(0, 0.07, ph); else if (ph < 0.15) s = 0.78 + 0.1 * smooth(0.07, 0.15, ph);
+    else if (ph < 0.2) s = 0.88 - 0.08 * smooth(0.15, 0.2, ph); else s = 0.8 + 0.2 * (1 - Math.pow(1 - (ph - 0.2) / 0.8, 2.2));
+    return { s, kick: ph < 0.07 ? 1 - ph / 0.07 : ph > 0.15 && ph < 0.2 ? 0.6 * (1 - (ph - 0.15) / 0.05) : 0 };
+  }
+  update(eng, t, dt) {
+    const S = eng.S, N = eng.N, d = this.d, R0 = 0.17, Rcrit = 0.5, bt = this.beat(t);
+    // cor do núcleo por CORTE: blocos de duração irregular, troca de quadro sem transição
+    const seg = Math.floor(t * 3.1 + 0.8 * Math.sin(t * 1.3) + 0.5 * Math.sin(t * 0.37)), coreC = hash1(seg * 1.37 + 0.5) < 0.5 ? PAL.violet : PAL.magenta;
+    // órbitas: raio próprio com ruído (não senoide); quanto mais perto, mais rápido
+    const F = this.F, sigF = F[this.sig], ref = F[(this.sig + 1) % F.length];
+    F.forEach((f, k) => {
+      if (k === this.sig) { f.R = 0.8; f.ph = ref.ph + 2.4; }   // assinatura: raio fixo, sempre no mesmo lugar em relação aos outros
+      else { const n = vnoiseP(t * 0.42 + f.ns, f.ns * 3.1, 0) * 0.65 + vnoiseP(t * 1.1 + f.ns * 2, f.ns, 0) * 0.35; f.R = f.Rb * (0.45 + 0.85 * n); f.ph += dt * 0.55 / Math.pow(Math.max(0.2, f.R), 1.5); }
+      f.psi += dt * f.spin * (k === this.sig ? 0.3 : 1);
+      const ca = Math.cos(f.ph) * f.R, sa = Math.sin(f.ph) * f.R, ci = Math.cos(f.inc), si = Math.sin(f.inc), cn = Math.cos(f.node), sn = Math.sin(f.node);
+      const yy = -sa * si, zz = sa * ci; f.x = ca * cn - zz * sn * 0.35; f.y = yy; f.z = ca * sn * 0.35 + zz;
+      f.prox = k === this.sig ? 0 : smooth(Rcrit, Rcrit * 0.55, f.R);
+      f.shedPh += dt * 0.6 * f.prox; });
+    for (let i = 0; i < N; i++) { const o = i * 8, kd = this.kind[i];
+      if (kd === 1) { const sc = R0 * bt.s, x = d[o] * sc, y = d[o + 1] * sc, z = d[o + 2] * sc, rim = Math.hypot(d[o], d[o + 1], d[o + 2]), hot = 1 + bt.kick * 0.9;
+        writeSlot(S, i, x, y, z, coreC[0] * hot * (0.8 + 0.4 * (1 - rim)), coreC[1] * hot * (0.8 + 0.4 * (1 - rim)), coreC[2] * hot, 0.3 + 0.35 * bt.kick, 0.6 + 0.3 * bt.kick, 0.95, 0.02, bt.kick > 0.5 ? 0.3 : 0, 3); continue; }
+      if (kd === 2) { const x = d[o] + 0.04 * Math.sin(t * 0.3 + d[o + 3] * 20), y = d[o + 1] + 0.03 * Math.sin(t * 0.4 + d[o + 3] * 13), z = d[o + 2];
+        writeSlot(S, i, x, y, z, PAL.violet[0] * 0.6, PAL.violet[1] * 0.6, PAL.violet[2] * 0.75, 0.12 + 0.1 * d[o + 3], 0.45, 0.2, 0.3, 0, 0); continue; }
+      const k = kd - 10, f = F[k], cp = Math.cos(f.psi), sp = Math.sin(f.psi), lx = d[o] * cp - d[o + 1] * sp, ly = d[o] * sp + d[o + 1] * cp, ed = d[o + 4];
+      let x = f.x + lx, y = f.y + ly, z = f.z + d[o + 2];
+      const mg = k === this.sig ? 0.25 : smooth(-0.6, 0.6, ly / this.HS);
+      let r = lerp(PAL.violet[0], PAL.magenta[0], mg), g = lerp(PAL.violet[1], PAL.magenta[1], mg), b = lerp(PAL.violet[2], PAL.magenta[2], mg), a = ed ? 0.95 : 0.72, sz = ed ? 0.75 : 0.7, sh = ed ? 1 : 0;
+      if (ed === 2) { r = lerp(r, 1.3, 0.35); g = lerp(g, 1.0, 0.35); b = lerp(b, 1.3, 0.35); }       // borda da rachadura, viva
+      if (k === this.sig && ed) { r = lerp(r, PAL.cyan[0], 0.35); g = lerp(g, PAL.cyan[1], 0.35); b = lerp(b, PAL.cyan[2], 0.35); }
+      if (k !== this.sig) {
+        // racha ao passar perto: o MESMO padrão do cabelo que solta fio (fase, fract(fase + semente), cruzar o limiar → warp)
+        const sd = d[o + 3], p = fract(f.shedPh + sd * 7.3);
+        if (this.lastP[i] < 0.8 && p >= 0.8 && f.prox > 0.02 && this.sparkT[i] < 0) { this.sparkT[i] = t; const q = i * 6, rx = x - 0, ry = y - 0, rl = Math.hypot(rx, ry, z) + 1e-3;
+          this.sp.set([x, y, z, rx / rl + (sd - 0.5) * 0.8, ry / rl + 0.3, z / rl + (fract(sd * 9.1) - 0.5) * 0.8], q); }
+        if (p < this.lastP[i] && this.sparkT[i] < 0 && !this.hidden[i]) S.warp[i]++;
+        this.lastP[i] = p;
+        if (this.sparkT[i] >= 0) { const age = t - this.sparkT[i], q = i * 6;
+          if (age < 0.75) { const sp2 = this.sp; x = sp2[q] + sp2[q + 3] * age * 0.6; y = sp2[q + 1] + sp2[q + 4] * age * 0.6 + age * age * 0.25; z = sp2[q + 2] + sp2[q + 5] * age * 0.6;
+            const c = FIRE(1 - age / 0.75); r = c[0]; g = c[1]; b = c[2]; a = 1 - age / 0.75; sz = 0.7 * (1 - 0.5 * age); sh = 2; }   // fagulha de fogo: perder pedaço dói
+          else { this.sparkT[i] = -1; this.hidden[i] = 1; } }
+        if (this.hidden[i]) { if (f.prox < 0.02) { this.hidden[i] = 0; S.warp[i]++; } else a = 0; }   // o pedaço só se refaz quando se afasta do núcleo
+      }
+      writeSlot(S, i, x, y, z, r, g, b, a, sz, 0.85, 0.03, 0, sh); }
+    centerFocus(eng);
+  }
+}
+
+/* =====================================================================
    REGISTRO DE FORMAS + APLICAÇÃO
    ===================================================================== */
 const FORMS = {
   corpo: () => new BodyForm('full'), retrato: () => new BodyForm('portrait'), compacto: () => new BodyForm('compact'), nucleo: () => new CoreForm(), nuvem: () => new CloudForm(),
-  vortice: () => new VortexForm(), rajada: () => new WindForm(),
+  vortice: () => new VortexForm(), rajada: () => new WindForm(), coracaoOrbita: () => new HeartOrbitForm(),
   circulo: () => new OutlineForm(SHAPES.circulo), quadrado: () => new OutlineForm(SHAPES.quadrado), triangulo: () => new OutlineForm(SHAPES.triangulo),
   retangulo: () => new OutlineForm(SHAPES.retangulo), hexagono: () => new OutlineForm(SHAPES.hexagono), estrela: () => new OutlineForm(SHAPES.estrela), coracao: () => new OutlineForm(SHAPES.coracao)
 };
@@ -4006,6 +4228,14 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); const dy = e.deltaMo
 document.getElementById('camReset').addEventListener('click', camReset);
 function syncMeshUI() { const a = document.getElementById('meshBody'), b = document.getElementById('meshFace'); if (a) a.setAttribute('aria-pressed', String(MESH_UI.body)); if (b) b.setAttribute('aria-pressed', String(MESH_UI.face)); }
 document.getElementById('meshBody').addEventListener('click', () => Lili.mesh(!MESH_UI.body));
+const actPt = () => { const p = eng.char.place, side = eng.form.mode === 'compact' ? -1 : 1; return [p[0] + side * 0.6, p[1] + 1.25, 0.15]; };
+document.getElementById('actGrab').addEventListener('click', () => Lili.grab(...actPt()));
+document.getElementById('actRelease').addEventListener('click', () => Lili.release());
+document.getElementById('actDelete').addEventListener('click', () => Lili.deleteAt(...actPt()));
+const travelBtn = modo => () => { if (!eng.form.usesCharacter) Lili.form('corpo'); const p = eng.char.place, far = Math.abs(p[0]) > 0.05, dx = eng.form.mode === 'compact' ? -0.75 : 0.75; Lili.travelTo(far ? 0 : dx, 0, modo); };   // vai e volta
+document.getElementById('trFluxo').addEventListener('click', travelBtn('fluxo'));
+document.getElementById('trPortal').addEventListener('click', travelBtn('portal'));
+document.getElementById('trAmbos').addEventListener('click', travelBtn('ambos'));
 document.getElementById('meshFace').addEventListener('click', () => Lili.meshFace(!MESH_UI.face));
 syncMeshUI();
 document.getElementById('tilt').addEventListener('input', e => { eng.ucam.pitch = clamp(+e.target.value, -85, 85) * D2R; syncTilt(); });
@@ -4026,6 +4256,23 @@ const Lili = {
   expr(name) { if (!EXPR[name]) throw new Error('expressão desconhecida'); eng.char.setExpr(name); syncChips('expr', name); },
   dissolve(part, amount = 1, behavior) { if (!eng.form.usesCharacter) Lili.form('corpo'); const list = part === 'tudo' ? [0, 1, 2, 3, 4, 5] : [NAME_PART[part] ?? part]; list.forEach(p => eng.char.disT[p] = clamp(amount, 0, 1)); if (behavior) eng.char.swarm = behavior; },
   recompose() { eng.char.disT.fill(0); },
+  // pegar/mover um "arquivo": a mão vira enxame e vai até o ponto (cor fria). deleteAt: chega, sobe em espiral e queima.
+  grab(x, y, z = 0.15) { if (!eng.form.usesCharacter) Lili.form('corpo'); const ch = eng.char, c = ch.joint('chest'), part = +x >= c[0] ? 3 : 4, prev = ch.grab;
+    if (prev && prev.part !== part) ch.disT[prev.part] = 0;
+    ch.grab = { mode: 'grab', pos: [+x || 0, +y || 0, +z || 0], part, t0: eng.t, prevSwarm: prev ? prev.prevSwarm : ch.swarm };
+    ch.swarm = 'reach'; ch.disT[part] = 1; syncChips('swarm', 'reach'); return part === 3 ? 'bracoE' : 'bracoD'; },
+  release() { const g = eng.char.grab; if (!g) return false; if (g.mode === 'grab') { g.mode = 'release'; eng.char.disT[g.part] = 0; } return true; },
+  deleteAt(x, y, z = 0.15) { Lili.grab(x, y, z); const g = eng.char.grab; g.mode = 'delete'; g.burnT0 = null; return true; },
+  // locomoção: 'fluxo' (corrente visível) | 'portal' (rasgo → rasgo, quase instantâneo) | 'ambos' (rasgo → corrente → rasgo)
+  travelTo(x, y = 0, modo = 'ambos') { if (!['fluxo', 'portal', 'ambos'].includes(modo)) throw new Error("modo: 'fluxo' | 'portal' | 'ambos'");
+    const ch = eng.char, to = [+x || 0, +y || 0];
+    if (!eng.form.usesCharacter) { ch.place = to; Lili.form('corpo'); return true; }
+    if (eng.travel) return false;
+    ch.grab = null; ch.disT.fill(0);
+    const name = eng.formName, tf = new TravelForm(ch.place.slice(), to, modo, eng.form.mode);
+    eng.setForm('travessia', tf, { releaseTime: tf.releaseTime, buildTime: tf.buildTime, disintegrate: true });
+    for (const i of tf.fast) eng.S.act[i] = eng.t - 0.5;   // as bordas do rasgo assumem o papel na hora
+    eng.travel = { form: tf, t0: eng.t, to, formName: name }; syncChips('form', null); return true; },
   // malha: corpo/roupas/acessórios e rosto/cabelo, cada um com o seu botão; desligar volta às partículas
   mesh(on = true) { MESH_UI.body = !!on; meshSave(); syncMeshUI(); return MESH_UI.body; },
   meshFace(on = true) { MESH_UI.face = !!on; meshSave(); syncMeshUI(); return MESH_UI.face; },
@@ -4052,7 +4299,7 @@ const Lili = {
   _advance(sec, fps = 60) { for (let k = 0, n = Math.round(sec * fps); k < n; k++) eng.step(1 / fps); eng.pack(); ren.draw(eng, opts); },
   _pause(v) { paused = v; },
   _pointer(x, y, active = true) { eng.pointer.x = x; eng.pointer.y = y; eng.pointer.inside = active; eng.pointer.lastMove = active ? eng.t + 1e6 : -99; },
-  help() { return 'Formas: ' + Object.keys(FORMS).join(', ') + ' | Poses: ' + Object.keys(POSES).join(', ') + ' | Expressões: ' + Object.keys(EXPR).join(', ') + ' | Partes: ' + Object.keys(NAME_PART).join(', ') + ', tudo | Peças: ' + ITEM_NAMES.join(', ') + ' (Lili.wear(peça, true/false)) | Lili.legs(livre|balancando|cruzadas) | Lili.curious(seg) | Lili.react("recuo") | Lili.disintegrate() | Lili.buildTime(3..5)'; }
+  help() { return 'Ações: Lili.grab(x, y, z) · Lili.release() · Lili.deleteAt(x, y, z) · Lili.travelTo(x, y, fluxo|portal|ambos) | Formas: ' + Object.keys(FORMS).join(', ') + ' | Poses: ' + Object.keys(POSES).join(', ') + ' | Expressões: ' + Object.keys(EXPR).join(', ') + ' | Partes: ' + Object.keys(NAME_PART).join(', ') + ', tudo | Peças: ' + ITEM_NAMES.join(', ') + ' (Lili.wear(peça, true/false)) | Lili.legs(livre|balancando|cruzadas) | Lili.curious(seg) | Lili.react("recuo") | Lili.disintegrate() | Lili.buildTime(3..5)'; }
 };
 window.Lili = Lili;
 

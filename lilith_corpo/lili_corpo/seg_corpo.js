@@ -345,7 +345,7 @@ class BodyForm {
     if (this.mode === 'compact') {   // pequena, de pé no canto de baixo à direita da área livre (o painel aberto empurra a área)
       const vw = eng.view, z = COMPACT.zoom, S = eng.screenScale() / Math.max(1e-6, eng.cam.zoom * eng.ucam.zoom) * z, r = eng.char.joint('root');
       const fx = vw.cx * vw.W * 2 - 0.1 * vw.H, fy = vw.H * 0.955;   // onde os pés devem ficar, em pixels
-      return { x: r[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }
+      return { x: r[0] - eng.char.place[0] - (fx - vw.cx * vw.W) / S, y: (fy - vw.cy * vw.H) / S, zoom: z }; }   // o canto é a casa dela; viajar a tira de lá
     const v = eng.char.view; if (v && VIEW_FOCUS[v.focus]) return VIEW_FOCUS[v.focus](eng.char);
     const pc = eng.char.pose.cam; if (pc) return { x: 0, y: pc.y, zoom: pc.zoom };
     return { x: 0, y: 0.9, zoom: 1 };
@@ -478,7 +478,7 @@ class BodyForm {
     }
     /* ---------- acessórios e marca (tipo 4): geometria própria; desligados, viram aura ---------- */
     let dry = 0, dryOn = false;   // modo de medição: conta sem criar
-    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
+    const item = (id, P, skw, part, o = {}) => { if (port && P.p[1] < 1.11) return -1; if (!(isFinite(P.p[0]) && isFinite(P.p[1]) && isFinite(P.p[2])))  return -1; if (dryOn) { dry++; return -1; } return B.add({ type: 4, item: id, x: P.p[0], y: P.p[1], z: P.p[2], nx: P.n[0], ny: P.n[1], nz: P.n[2], j1: skw[0], j2: skw[1], w2: skw[2] || 0, part, dist: o.dist ?? 0.5,
       chain: o.chain ?? -1, seg: o.seg ?? 0, size: o.size ?? 0.55, shape: o.shape ?? 0, col: o.col || MAT.white, al: o.al ?? 0.8, hang: o.hang || 0, pA: o.pA || 0, pB: o.pB || 0, sub: o.sub || 0, q1: o.q1, q2: o.q2, q3: o.q3, q4: o.q4, sparkle: o.spark ? 1 : 0 }); };
     // linha contínua (contorno) por uma lista de {p, n, k: [j1, j2, w2]}
     const line = (id, pts, part, o = {}) => { const ch = seg++; for (const q of pts) item(id, q, q.k, part, { ...o, chain: ch }); return ch; };
@@ -883,7 +883,7 @@ class BodyForm {
         line(ID, resample(q => { const a = lerp(0.6, TAU - 0.6, q); return PT(sxM + Math.cos(a) * 0.0042, syM + Math.sin(a) * 0.0042); }, Math.max(6, nMk - per * TAT.dots.length - TAT.dots.length - mS)), 0, { col: MAT.tatHeart, al: 0.95, size: 0.34 }); }   // lua
       // veias de glitch (pulsam com a carga emocional dela)
       for (const sx of SIDES) { const m = Math.round(nV / 2), mMain = Math.round(m * 0.78), ch = seg++;
-        for (let i = 0; i < mMain; i++) { const q = i / (mMain - 1), [h, a] = veinPath(sx, q), wob = 0.006 * Math.sin(q * 61 + sx) + 0.003 * Math.sin(q * 140), P = TP(h, a + wob / Math.max(0.05, torsoAt(h)[0]), 0.0018);
+        for (let i = 0; i < mMain; i++) { const q = mMain > 1 ? i / (mMain - 1) : 0.5, [h, a] = veinPath(sx, q), wob = 0.006 * Math.sin(q * 61 + sx) + 0.003 * Math.sin(q * 140), P = TP(h, a + wob / Math.max(0.05, torsoAt(h)[0]), 0.0018);
           item(ID, P, P.k, 0, { col: MAT.vein, al: 0.85, size: 0.4, chain: ch, sub: 22, q1: q }); }
         for (let i = 0; i < m - mMain; i++) { const q = 0.08 + 0.84 * rng(), [h, a] = veinPath(sx, q), br = (rng() - 0.5) * 0.03, P = TP(h + Math.abs(br) * 0.6, a + br / Math.max(0.05, torsoAt(h)[0]), 0.0018);   // ramificações curtas
           item(ID, P, P.k, 0, { col: MAT.vein, al: 0.6, size: 0.34, sub: 22, q1: q }); }
@@ -1468,8 +1468,8 @@ class BodyForm {
           if (gq > 0) { glitch = Math.max(glitch, gq * (1 - fq * 0.55)); const m = gq * 0.75 * (1 - fq * 0.4); r = lerp(r, PAL.glitch[0] * 1.2, m); g = lerp(g, PAL.glitch[1] * 1.2, m); b = lerp(b, PAL.glitch[2] * 1.2, m); a = Math.max(a, 0.5 * gq * (ty === 4 ? iw : 1)); }
           if (fq > 0) {
             const A0 = anc[part];
-            let sx, sy, sz, sk2 = 0.5, st2 = 0.25;
-            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1);
+            let sx, sy, sz, sk2 = 0.5, st2 = 0.25, fadeK = 1;
+            const dist = clamp(1 - (h - 0.0) / 0.88, 0, 1), GB = glA.grab && glA.grab.part === part ? glA.grab : null;
             if (ch.swarm === 'reach') {
               const G = glA.goal, gx2 = G[0] - A0[0], gy2 = G[1] - A0[1], gz2 = G[2] - A0[2], gl = Math.hypot(gx2, gy2, gz2) + 1e-4, maxL = 2.1;
               const ext = glA.ext * Math.min(1, maxL / gl), Ex = A0[0] + gx2 * ext, Ey = A0[1] + gy2 * ext, Ez = A0[2] + gz2 * ext;
@@ -1487,6 +1487,15 @@ class BodyForm {
               sk2 = 0.62; st2 = 0.12;
               const tip = smooth(0.75, 1, dist);
               r = lerp(r, lerp(PAL.violet[0], PAL.cyan[0] * 1.3, tip), fq * 0.8); g = lerp(g, lerp(PAL.violet[1], PAL.cyan[1] * 1.3, tip), fq * 0.8); b = lerp(b, lerp(PAL.violet[2], PAL.cyan[2] * 1.3, tip), fq * 0.8);
+              if (GB && GB.mode === 'delete' && GB.burnT0 != null) {
+                // deletar: na chegada a mão não pousa — sobe em espiral (a MESMA subida do vórtice) e queima até sumir. Único fogo do reach.
+                const hv = (t - GB.burnT0) * 0.48 - (1 - dist) * 0.62 + fract(sd * 0.1377) * 0.14;
+                if (hv > 0) { const h2 = Math.min(1, hv), r0 = (0.03 + 0.34 * Math.pow(h2, 1.5)) * (0.85 + 0.3 * fract(sd * 0.71)), th = fract(sd * 0.29) * TAU + t * 2.3 - h2 * 5.5;
+                  const vx2 = Ex + 0.12 * Math.sin(t * 0.55 + h2 * 2.4) * h2 + Math.cos(th) * r0, vy2 = Ey + h2 * 1.05, vz2 = Ez + Math.sin(th) * r0, m = smooth(0, 0.14, hv);
+                  sx = lerp(sx, vx2, m); sy = lerp(sy, vy2, m); sz = lerp(sz, vz2, m);
+                  const fc = FIRE(clamp(1 - h2 * 0.9 + 0.12 * Math.sin(t * 23 + sd * 50), 0, 1));
+                  r = lerp(r, fc[0], m); g = lerp(g, fc[1], m); b = lerp(b, fc[2], m); sk2 = 0.75; st2 = 0.05; fadeK = 1 - smooth(0.55, 1.0, hv); }
+              } else if (GB && GB.mode === 'regrow') { sx = x; sy = y; sz = z; fadeK = 1 - fq; }   // depois de queimar, o braço volta a se formar no lugar
             } else if (ch.swarm === 'orbit') {
               const R = 0.42 + sd * 0.42, inc = (D.seed[i] * 7 % 1 - 0.5) * 0.9 + part * 0.4, ang = sd * TAU * 13 + t * (0.75 / R) * (part % 2 ? 1 : -1);
               sx = chest[0] + Math.cos(ang) * R; sy = chest[1] - 0.15 + Math.sin(ang) * R * Math.sin(inc) * 0.5 + Math.sin(t + sd * 9) * 0.02; sz = chest[2] + Math.sin(ang) * R * Math.cos(inc);
@@ -1499,7 +1508,7 @@ class BodyForm {
               r = lerp(r, PAL.violet[0], fq * 0.5); g = lerp(g, PAL.violet[1], fq * 0.5); b = lerp(b, PAL.violet[2], fq * 0.5);
             }
             x = lerp(x, sx, fq); y = lerp(y, sy, fq); z = lerp(z, sz, fq); k = lerp(k, sk2, fq); turb = lerp(turb, st2, fq);
-            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq); shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
+            a = lerp(a, 0.75 * (ty === 4 ? Math.min(1, iw * 1.4) : 1), fq) * fadeK; shape = fq > 0.5 ? 1 : shape; size = lerp(size, 0.9, fq);
           }
         }
       }

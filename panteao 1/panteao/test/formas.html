@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>teste das formas</title>
+<style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;height:100vh}canvas{width:100%;height:100%;display:block}div{position:relative;min-height:0}b{position:absolute;left:6px;top:4px;color:#888;font:11px monospace}</style>
+</head><body>
+<div><canvas id="c0"></canvas><b>nyx</b></div><div><canvas id="c1"></canvas><b>cerbero</b></div><div><canvas id="c2"></canvas><b>caronte</b></div>
+<div><canvas id="c3"></canvas><b>ogum</b></div><div><canvas id="c4"></canvas><b>ogumMarca</b></div><div><canvas id="c5"></canvas><b>morfeu</b></div>
+<script src="../js/core/util.js"></script><script src="../js/core/engine.js"></script><script src="../js/core/renderer.js"></script><script src="../js/core/stage.js"></script>
+<script src="../js/forms/nyx.js"></script><script src="../js/forms/cerbero.js"></script><script src="../js/forms/caronte.js"></script><script src="../js/forms/ogum.js"></script><script src="../js/forms/morfeu.js"></script>
+<script>
+const q = new URLSearchParams(location.search), mode = q.get('m') || 'calmo';
+window.ST = {
+  nyx: { processing: mode === 'alerta' ? 1 : 0.2, attention: { level: mode === 'alerta' ? 1 : 0, angle: 2.4 }, available: true, dustSeq: 0 },
+  cerbero: { eyes: [{ risk: mode === 'alerta' ? 0.9 : 0.05 }, { risk: mode === 'alerta' ? 0.9 : 0.3 }, { risk: mode === 'alerta' ? 0.9 : 0.0 }], converge: mode === 'alerta', alert: mode === 'alerta' ? 1 : 0 },
+  caronte: { pending: mode === 'alerta' ? 1 : 0.1, dropSeq: 0, arrivalSeq: 0, lastArrival: null },
+  ogum: { phase: 'trabalhando', task: { id: mode === 'alerta' ? 'deploy' : 'build' } }, ogumM: { lastMark: { x: 0.1, y: 0.05, dx: 0.8, dy: 0.6, at: -10 } },
+  morfeu: { layers: { vinculo: 40, processual: 120, autoavaliacao: 25, biblioteca: 300 }, lastWrite: null }
+};
+PT.Stage.init();
+const N = +(q.get('n') || 4500);
+PT.Stage.add(c0, { agent: 'nyx', state: ST.nyx, N });
+PT.Stage.add(c1, { agent: 'cerbero', state: ST.cerbero, N, presence: 0.6 });
+PT.Stage.add(c2, { agent: 'caronte', state: ST.caronte, N });
+PT.Stage.add(c3, { agent: 'ogum', state: ST.ogum, N });
+PT.Stage.add(c4, { agent: 'ogum', state: ST.ogumM, N: 1500, form: 'ogumMarca' });
+PT.Stage.add(c5, { agent: 'morfeu', state: ST.morfeu, N });
+window.drop = () => ST.caronte.dropSeq++;
+window.arrive = imp => { ST.caronte.lastArrival = { imp }; ST.caronte.arrivalSeq++; };
+window.dust = () => ST.nyx.dustSeq++;
+window.errs = []; addEventListener('error', e => errs.push(e.message));
+</script></body></html>
